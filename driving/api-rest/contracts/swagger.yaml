@@ -1,0 +1,410 @@
+openapi: 3.0.1
+info:
+  title: Financial Backoffice API
+  version: 1.0.0
+  description: API para gestión financiera y dashboard, incluyendo subida de Excel, CRUD completo y endpoints para gráficos.
+
+paths:
+  /assets:
+    get:
+      tags: [Assets]
+      summary: Listar todos los assets
+      responses:
+        '200':
+          description: Lista de assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+    post:
+      tags: [Assets]
+      summary: Crear un asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asset'
+      responses:
+        '201':
+          description: Asset creado
+  /assets/{assetId}:
+    get:
+      tags: [Assets]
+      summary: Obtener un asset por ID
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalle de asset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+    patch:
+      tags: [Assets]
+      summary: Modificar un asset
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asset'
+      responses:
+        '200':
+          description: Asset actualizado
+    delete:
+      tags: [Assets]
+      summary: Borrar un asset
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Asset eliminado
+
+  /liabilities:
+    get:
+      tags: [Liabilities]
+      summary: Listar todas las liabilities
+      responses:
+        '200':
+          description: Lista de liabilities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Liability'
+    post:
+      tags: [Liabilities]
+      summary: Crear una liability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Liability'
+      responses:
+        '201':
+          description: Liability creada
+  /liabilities/{liabilityId}:
+    get:
+      tags: [Liabilities]
+      summary: Obtener una liability por ID
+      parameters:
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalle de liability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liability'
+    patch:
+      tags: [Liabilities]
+      summary: Modificar una liability
+      parameters:
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Liability'
+      responses:
+        '200':
+          description: Liability actualizada
+    delete:
+      tags: [Liabilities]
+      summary: Borrar una liability
+      parameters:
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Liability eliminada
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Listar categorías
+      responses:
+        '200':
+          description: Lista de categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      tags: [Categories]
+      summary: Crear categoría
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        '201':
+          description: Categoría creada
+  /categories/{categoryId}:
+    patch:
+      tags: [Categories]
+      summary: Modificar categoría
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+      responses:
+        '200':
+          description: Categoría actualizada
+    delete:
+      tags: [Categories]
+      summary: Borrar categoría
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Categoría eliminada
+
+  /purchases:
+    get:
+      tags: [Purchases]
+      summary: Listar compras
+      responses:
+        '200':
+          description: Lista de compras
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Purchase'
+    post:
+      tags: [Purchases]
+      summary: Crear compra
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Purchase'
+      responses:
+        '201':
+          description: Compra creada
+
+  /records:
+    get:
+      tags: [Records]
+      summary: Listar registros
+      responses:
+        '200':
+          description: Lista de registros
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Record'
+    post:
+      tags: [Records]
+      summary: Crear registro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Record'
+      responses:
+        '201':
+          description: Registro creado
+
+  /files/upload:
+    post:
+      tags: [Files]
+      summary: Subir fichero Excel y procesarlo
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Estado de subida y procesamiento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+
+  /dashboard/summary:
+    get:
+      tags: [Dashboard]
+      summary: Resumen financiero para gráficos
+      responses:
+        '200':
+          description: Datos agregados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSummary'
+
+components:
+  schemas:
+    Asset:
+      type: object
+      required: [id, name, type, value]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Liability:
+      type: object
+      required: [id, name, type, amount]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        amount:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        parentId:
+          type: string
+
+    Purchase:
+      type: object
+      required: [id, date, amount, categoryId]
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        categoryId:
+          type: string
+        description:
+          type: string
+
+    Record:
+      type: object
+      required: [id, assetId, liabilityId, amount, date]
+      properties:
+        id:
+          type: string
+        assetId:
+          type: string
+        liabilityId:
+          type: string
+        amount:
+          type: number
+          format: double
+        date:
+          type: string
+          format: date
+
+    FileUploadResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+        fileName:
+          type: string
+        status:
+          type: string
+          enum: [uploaded, processing, completed, error]
+        errors:
+          type: array
+          items:
+            type: string
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalAssets:
+          type: number
+          format: double
+        totalLiabilities:
+          type: number
+          format: double
+        netWorth:
+          type: number
+          format: double
