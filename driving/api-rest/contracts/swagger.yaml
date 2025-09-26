@@ -1,160 +1,87 @@
 openapi: 3.0.1
 info:
-  title: Financial Backoffice API
-  version: 1.0.0
-  description: API para gestión financiera y dashboard, incluyendo subida de Excel, CRUD completo y endpoints para gráficos.
+  title: Cuentas Backend API
+  version: "1.0.0"
+  description: API para gestión de usuarios, categorías, activos, pasivos y transacciones financieras.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor local
+tags:
+  - name: Users
+    description: Gestión de usuarios
+  - name: Categories
+    description: Gestión de categorías de ingresos/gastos
+  - name: Assets
+    description: Gestión de activos
+  - name: Liabilities
+    description: Gestión de pasivos
+  - name: Transactions
+    description: Gestión de transacciones
+  - name: Excel
+    description: Importación de Excel
 
 paths:
-  /assets:
-    get:
-      tags: [Assets]
-      summary: Listar todos los assets
-      responses:
-        '200':
-          description: Lista de assets
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Asset'
+
+  # ===============================
+  # USERS
+  # ===============================
+  /users:
     post:
-      tags: [Assets]
-      summary: Crear un asset
+      tags: [Users]
+      summary: Crear un usuario
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Asset'
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
       responses:
         '201':
-          description: Asset creado
-  /assets/{assetId}:
-    get:
-      tags: [Assets]
-      summary: Obtener un asset por ID
-      parameters:
-        - name: assetId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Detalle de asset
+          description: Usuario creado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Asset'
-    patch:
-      tags: [Assets]
-      summary: Modificar un asset
-      parameters:
-        - name: assetId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Asset'
-      responses:
-        '200':
-          description: Asset actualizado
-    delete:
-      tags: [Assets]
-      summary: Borrar un asset
-      parameters:
-        - name: assetId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Asset eliminado
+                $ref: '#/components/schemas/User'
 
-  /liabilities:
+  /users/{userId}:
     get:
-      tags: [Liabilities]
-      summary: Listar todas las liabilities
+      tags: [Users]
+      summary: Obtener un usuario por ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
-          description: Lista de liabilities
+          description: Usuario encontrado
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Liability'
-    post:
-      tags: [Liabilities]
-      summary: Crear una liability
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Liability'
-      responses:
-        '201':
-          description: Liability creada
-  /liabilities/{liabilityId}:
-    get:
-      tags: [Liabilities]
-      summary: Obtener una liability por ID
-      parameters:
-        - name: liabilityId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Detalle de liability
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Liability'
-    patch:
-      tags: [Liabilities]
-      summary: Modificar una liability
-      parameters:
-        - name: liabilityId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Liability'
-      responses:
-        '200':
-          description: Liability actualizada
-    delete:
-      tags: [Liabilities]
-      summary: Borrar una liability
-      parameters:
-        - name: liabilityId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Liability eliminada
+                $ref: '#/components/schemas/User'
 
-  /categories:
+  # ===============================
+  # CATEGORIES
+  # ===============================
+  /users/{userId}/categories:
     get:
       tags: [Categories]
-      summary: Listar categorías
+      summary: Listar categorías de un usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: Lista de categorías
@@ -164,106 +91,504 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Category'
+
     post:
       tags: [Categories]
-      summary: Crear categoría
+      summary: Crear categoría para usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Category'
+              type: object
+              required: [name, type]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [income, expense]
+                description:
+                  type: string
       responses:
         '201':
           description: Categoría creada
-  /categories/{categoryId}:
-    patch:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
+  /users/{userId}/categories/{categoryId}:
+    put:
       tags: [Categories]
-      summary: Modificar categoría
+      summary: Actualizar categoría
       parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
         - name: categoryId
           in: path
           required: true
           schema:
-            type: string
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Category'
+              type: object
+              required: [name, type]
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [income, expense]
+                description:
+                  type: string
       responses:
         '200':
           description: Categoría actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
     delete:
       tags: [Categories]
       summary: Borrar categoría
       parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
         - name: categoryId
           in: path
           required: true
           schema:
-            type: string
+            type: integer
       responses:
         '204':
-          description: Categoría eliminada
+          description: Categoría borrada
 
-  /purchases:
+  # ===============================
+  # ASSETS
+  # ===============================
+  /users/{userId}/assets:
     get:
-      tags: [Purchases]
-      summary: Listar compras
+      tags: [Assets]
+      summary: Listar activos de un usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
-          description: Lista de compras
+          description: Lista de activos
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Purchase'
+                  $ref: '#/components/schemas/Asset'
+
     post:
-      tags: [Purchases]
-      summary: Crear compra
+      tags: [Assets]
+      summary: Crear un activo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Purchase'
+              type: object
+              required: [name, assetTypeId, acquisitionValue, currentValue]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                assetTypeId:
+                  type: integer
+                acquisitionValue:
+                  type: number
+                  format: double
+                currentValue:
+                  type: number
+                  format: double
+                acquisitionDate:
+                  type: string
+                  format: date
       responses:
         '201':
-          description: Compra creada
+          description: Activo creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
 
-  /records:
-    get:
-      tags: [Records]
-      summary: Listar registros
+  /users/{userId}/assets/{assetId}:
+    put:
+      tags: [Assets]
+      summary: Actualizar activo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, assetTypeId, acquisitionValue, currentValue]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                assetTypeId:
+                  type: integer
+                acquisitionValue:
+                  type: number
+                  format: double
+                currentValue:
+                  type: number
+                  format: double
+                acquisitionDate:
+                  type: string
+                  format: date
       responses:
         '200':
-          description: Lista de registros
+          description: Activo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+
+    delete:
+      tags: [Assets]
+      summary: Borrar activo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Activo borrado
+
+  # ===============================
+  # LIABILITIES
+  # ===============================
+  /users/{userId}/liabilities:
+    get:
+      tags: [Liabilities]
+      summary: Listar pasivos de un usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de pasivos
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Record'
+                  $ref: '#/components/schemas/Liability'
+
     post:
-      tags: [Records]
-      summary: Crear registro
+      tags: [Liabilities]
+      summary: Crear un pasivo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Record'
+              type: object
+              required: [name, liabilityTypeId, principalAmount, outstandingBalance]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                liabilityTypeId:
+                  type: integer
+                principalAmount:
+                  type: number
+                  format: double
+                interestRate:
+                  type: number
+                  format: double
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                outstandingBalance:
+                  type: number
+                  format: double
       responses:
         '201':
-          description: Registro creado
+          description: Pasivo creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liability'
 
-  /files/upload:
+  /users/{userId}/liabilities/{liabilityId}:
+    put:
+      tags: [Liabilities]
+      summary: Actualizar pasivo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, liabilityTypeId, principalAmount, outstandingBalance]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                liabilityTypeId:
+                  type: integer
+                principalAmount:
+                  type: number
+                  format: double
+                interestRate:
+                  type: number
+                  format: double
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                outstandingBalance:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Pasivo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liability'
+
+    delete:
+      tags: [Liabilities]
+      summary: Borrar pasivo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Pasivo borrado
+
+  # ===============================
+  # TRANSACTIONS
+  # ===============================
+  /users/{userId}/transactions:
+    get:
+      tags: [Transactions]
+      summary: Listar transacciones de un usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de transacciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
     post:
-      tags: [Files]
-      summary: Subir fichero Excel y procesarlo
+      tags: [Transactions]
+      summary: Crear transacción
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, transactionDate]
+              properties:
+                categoryId:
+                  type: integer
+                assetId:
+                  type: integer
+                liabilityId:
+                  type: integer
+                amount:
+                  type: number
+                  format: double
+                transactionDate:
+                  type: string
+                  format: date
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Transacción creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+  /users/{userId}/transactions/{transactionId}:
+    put:
+      tags: [Transactions]
+      summary: Actualizar transacción
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, transactionDate]
+              properties:
+                categoryId:
+                  type: integer
+                assetId:
+                  type: integer
+                liabilityId:
+                  type: integer
+                amount:
+                  type: number
+                  format: double
+                transactionDate:
+                  type: string
+                  format: date
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Transacción actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+    delete:
+      tags: [Transactions]
+      summary: Borrar transacción
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Transacción borrada
+
+  # ===============================
+  # EXCEL IMPORT
+  # ===============================
+  /users/{userId}/excel/import:
+    post:
+      tags: [Excel]
+      summary: Subir y procesar un Excel
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
@@ -276,37 +601,69 @@ paths:
                   format: binary
       responses:
         '200':
-          description: Estado de subida y procesamiento
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FileUploadResponse'
-
-  /dashboard/summary:
-    get:
-      tags: [Dashboard]
-      summary: Resumen financiero para gráficos
-      responses:
-        '200':
-          description: Datos agregados
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DashboardSummary'
+          description: Excel procesado correctamente
 
 components:
   schemas:
-    Asset:
+    User:
       type: object
-      required: [id, name, type, value]
       properties:
-        id:
-          type: string
+        userId:
+          type: integer
         name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        description:
           type: string
         type:
           type: string
-        value:
+          enum: [income, expense]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Asset:
+      type: object
+      properties:
+        assetId:
+          type: integer
+        userId:
+          type: integer
+        assetTypeId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        acquisitionDate:
+          type: string
+          format: date
+        acquisitionValue:
+          type: number
+          format: double
+        currentValue:
           type: number
           format: double
         createdAt:
@@ -318,15 +675,30 @@ components:
 
     Liability:
       type: object
-      required: [id, name, type, amount]
       properties:
-        id:
-          type: string
+        liabilityId:
+          type: integer
+        userId:
+          type: integer
+        liabilityTypeId:
+          type: integer
         name:
           type: string
-        type:
+        description:
           type: string
-        amount:
+        principalAmount:
+          type: number
+          format: double
+        interestRate:
+          type: number
+          format: double
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        outstandingBalance:
           type: number
           format: double
         createdAt:
@@ -336,75 +708,30 @@ components:
           type: string
           format: date-time
 
-    Category:
+    Transaction:
       type: object
-      required: [id, name]
       properties:
-        id:
-          type: string
-        name:
-          type: string
-        parentId:
-          type: string
-
-    Purchase:
-      type: object
-      required: [id, date, amount, categoryId]
-      properties:
-        id:
-          type: string
-        date:
-          type: string
-          format: date
+        transactionId:
+          type: integer
+        userId:
+          type: integer
+        categoryId:
+          type: integer
+        assetId:
+          type: integer
+        liabilityId:
+          type: integer
         amount:
           type: number
           format: double
-        categoryId:
+        transactionDate:
           type: string
+          format: date
         description:
           type: string
-
-    Record:
-      type: object
-      required: [id, assetId, liabilityId, amount, date]
-      properties:
-        id:
+        createdAt:
           type: string
-        assetId:
+          format: date-time
+        updatedAt:
           type: string
-        liabilityId:
-          type: string
-        amount:
-          type: number
-          format: double
-        date:
-          type: string
-          format: date
-
-    FileUploadResponse:
-      type: object
-      properties:
-        fileId:
-          type: string
-        fileName:
-          type: string
-        status:
-          type: string
-          enum: [uploaded, processing, completed, error]
-        errors:
-          type: array
-          items:
-            type: string
-
-    DashboardSummary:
-      type: object
-      properties:
-        totalAssets:
-          type: number
-          format: double
-        totalLiabilities:
-          type: number
-          format: double
-        netWorth:
-          type: number
-          format: double
+          format: date-time

@@ -24,7 +24,7 @@ public class FileRepositoryAdapter implements FileRepositoryPort {
         System.out.println("fileData type: " + (file.getFileData() != null ? file.getFileData().getClass() : null));
         System.out.println("fileSize type: " + (file.getFileSize() != null ? file.getFileSize().getClass() : null));
 
-        fileMOJpaRepository.save(fileMapperDb.toFileMO(file));
+        //fileMOJpaRepository.save(fileMapperDb.toFileMO(file));
       //log.info("File saved successfully" );
   }
 }
