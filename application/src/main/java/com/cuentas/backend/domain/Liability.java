@@ -1,6 +1,5 @@
 package com.cuentas.backend.domain;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -10,13 +9,24 @@ public class Liability {
     private Long liabilityTypeId;
     private String name;
     private String description;
-    private BigDecimal principalAmount;
-    private BigDecimal interestRate;
+    private Double principalAmount;
+    private Double interestRate;
     private LocalDate startDate;
     private LocalDate endDate;
-    private BigDecimal outstandingBalance;
+    private Double outstandingBalance;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public Liability(String name, Long userId, Long liabilityTypeId, Double outstandingBalance){
+        this.name = name;
+        this.userId = userId;
+        this.liabilityTypeId = liabilityTypeId;
+        this.outstandingBalance = outstandingBalance;
+    }
+
+    public Liability() {
+
+    }
 
     public Long getLiabilityId() {
         return liabilityId;
@@ -58,19 +68,19 @@ public class Liability {
         this.description = description;
     }
 
-    public BigDecimal getPrincipalAmount() {
+    public Double getPrincipalAmount() {
         return principalAmount;
     }
 
-    public void setPrincipalAmount(BigDecimal principalAmount) {
+    public void setPrincipalAmount(Double principalAmount) {
         this.principalAmount = principalAmount;
     }
 
-    public BigDecimal getInterestRate() {
+    public Double getInterestRate() {
         return interestRate;
     }
 
-    public void setInterestRate(BigDecimal interestRate) {
+    public void setInterestRate(Double interestRate) {
         this.interestRate = interestRate;
     }
 
@@ -90,11 +100,11 @@ public class Liability {
         this.endDate = endDate;
     }
 
-    public BigDecimal getOutstandingBalance() {
+    public Double getOutstandingBalance() {
         return outstandingBalance;
     }
 
-    public void setOutstandingBalance(BigDecimal outstandingBalance) {
+    public void setOutstandingBalance(Double outstandingBalance) {
         this.outstandingBalance = outstandingBalance;
     }
 

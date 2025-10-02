@@ -1,6 +1,6 @@
 package com.cuentas.backend.domain;
 
-import java.math.BigDecimal;
+
 import java.time.LocalDate;
 
 public class Asset {
@@ -10,9 +10,16 @@ public class Asset {
     private String name;
     private String description;
     private LocalDate acquisitionDate;
-    private BigDecimal acquisitionValue;
-    private BigDecimal currentValue;
+    private Double acquisitionValue;
+    private Double currentValue;
 
+    public Asset(String name, Long userId,Long assetId, Double currentValue){
+        this.name = name;
+        this.userId = userId;
+        this.assetId = assetId;
+        this.currentValue = currentValue;
+    }
+    public Asset() {}
     // Getters y Setters
     public Long getAssetId() { return assetId; }
     public void setAssetId(Long assetId) { this.assetId = assetId; }
@@ -26,8 +33,8 @@ public class Asset {
     public void setDescription(String description) { this.description = description; }
     public LocalDate getAcquisitionDate() { return acquisitionDate; }
     public void setAcquisitionDate(LocalDate acquisitionDate) { this.acquisitionDate = acquisitionDate; }
-    public BigDecimal getAcquisitionValue() { return acquisitionValue; }
-    public void setAcquisitionValue(BigDecimal acquisitionValue) { this.acquisitionValue = acquisitionValue; }
-    public BigDecimal getCurrentValue() { return currentValue; }
-    public void setCurrentValue(BigDecimal currentValue) { this.currentValue = currentValue; }
+    public Double getAcquisitionValue() { return acquisitionValue; }
+    public void setAcquisitionValue(Double acquisitionValue) { this.acquisitionValue = acquisitionValue; }
+    public Double getCurrentValue() { return currentValue; }
+    public void setCurrentValue(Double currentValue) { this.currentValue = currentValue; }
 }

@@ -603,6 +603,35 @@ paths:
         '200':
           description: Excel procesado correctamente
 
+  /users/{userId}/excel/importNew:
+    post:
+      tags: [Excel]
+      summary: Subir y procesar un Excel
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Excel procesado correctamente
+
 components:
   schemas:
     User:

@@ -77,7 +77,7 @@ public class TransactionServiceUseCase implements TransactionServicePort {
         t.setCategoryId(rs.getObject("category_id") != null ? rs.getLong("category_id") : null);
         t.setAssetId(rs.getObject("asset_id") != null ? rs.getLong("asset_id") : null);
         t.setLiabilityId(rs.getObject("liability_id") != null ? rs.getLong("liability_id") : null);
-        t.setAmount(rs.getBigDecimal("amount"));
+        t.setAmount(rs.getDouble("amount"));
         t.setTransactionDate(rs.getDate("transaction_date") != null ? rs.getDate("transaction_date").toLocalDate() : null);
         t.setDescription(rs.getString("description"));
         t.setCreatedAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null);

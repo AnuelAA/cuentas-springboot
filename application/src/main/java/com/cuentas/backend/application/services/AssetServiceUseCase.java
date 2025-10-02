@@ -80,8 +80,8 @@ public class AssetServiceUseCase implements AssetServicePort {
         asset.setName(rs.getString("name"));
         asset.setDescription(rs.getString("description"));
         asset.setAcquisitionDate(rs.getDate("acquisition_date") != null ? rs.getDate("acquisition_date").toLocalDate() : null);
-        asset.setAcquisitionValue(rs.getBigDecimal("acquisition_value"));
-        asset.setCurrentValue(rs.getBigDecimal("current_value"));
+        asset.setAcquisitionValue(rs.getDouble("acquisition_value"));
+        asset.setCurrentValue(rs.getDouble("current_value"));
         return asset;
     }
 }

@@ -45,7 +45,6 @@ CREATE TABLE categories (
     user_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    type VARCHAR(20) CHECK (type IN ('income','expense')),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP,
     CONSTRAINT fk_categories_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
@@ -107,6 +106,7 @@ CREATE TABLE transactions (
     category_id INT,
     asset_id INT,
     liability_id INT,
+    transaction_type VARCHAR(20) NOT NULL CHECK (transaction_type IN ('income','expense','neutral')),
     amount DECIMAL(15,2) NOT NULL,
     transaction_date DATE NOT NULL,
     description TEXT,

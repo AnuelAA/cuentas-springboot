@@ -1,6 +1,5 @@
 package com.cuentas.backend.domain;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -10,11 +9,21 @@ public class Transaction {
     private Long categoryId;
     private Long assetId;
     private Long liabilityId;
-    private BigDecimal amount;
+    private Double amount;
     private LocalDate transactionDate;
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public Transaction(Long userId, Long categoryId, Long assetId, Long liabilityId, Double amount, LocalDate transactionDate) {
+        this.userId = userId;
+        this.categoryId = categoryId;
+        this.assetId = assetId;
+        this.liabilityId = liabilityId;
+        this.amount = amount;
+        this.transactionDate = transactionDate;
+    }
+    public Transaction(){}
 
     public Long getTransactionId() {
         return transactionId;
@@ -56,11 +65,11 @@ public class Transaction {
         this.liabilityId = liabilityId;
     }
 
-    public BigDecimal getAmount() {
+    public Double getAmount() {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
+    public void setAmount(Double amount) {
         this.amount = amount;
     }
 

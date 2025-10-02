@@ -21,9 +21,9 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
-public class ExcelServiceUseCase implements ExcelServicePort {
+public class ExcelOldServiceUseCase implements ExcelServicePort {
 
-    private static final Logger log = LoggerFactory.getLogger(ExcelServiceUseCase.class);
+    private static final Logger log = LoggerFactory.getLogger(ExcelOldServiceUseCase.class);
     private final JdbcTemplate jdbcTemplate;
 
     // =======================
@@ -48,7 +48,7 @@ public class ExcelServiceUseCase implements ExcelServicePort {
     private static final String SQL_UPDATE_LIABILITY =
             "UPDATE liabilities SET outstanding_balance = ?, updated_at = NOW() WHERE liability_id = ?";
 
-    public ExcelServiceUseCase(JdbcTemplate jdbcTemplate) {
+    public ExcelOldServiceUseCase(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -274,7 +274,7 @@ public class ExcelServiceUseCase implements ExcelServicePort {
             }
 
             String category = catCell != null ? formatter.formatCellValue(catCell, evaluator) : "Sin categoría";
-            double amount = amountCell != null ? parseDoubleSafe(formatter.formatCellValue(amountCell, evaluator)) : 0;
+            double amount = amountCell != null ? evaluaSumaResta(amountCell.toString()) : 0;
             matrix.add(new ArrayList<>(List.of(category, amount)));
         }
         return matrix;
@@ -301,9 +301,9 @@ public class ExcelServiceUseCase implements ExcelServicePort {
             if (allEmpty) break;
 
             String category = c1 != null ? formatter.formatCellValue(c1, evaluator) : "Sin categoría";
-            double v2 = c2 != null ? parseDoubleSafe(formatter.formatCellValue(c2, evaluator)) : 0;
-            double v3 = c3 != null ? parseDoubleSafe(formatter.formatCellValue(c3, evaluator)) : 0;
-            double v4 = c4 != null ? parseDoubleSafe(formatter.formatCellValue(c4, evaluator)) : 0;
+            double v2 = c2 != null ? evaluaSumaResta(c2.toString()) : 0;
+            double v3 = c3 != null ? evaluaSumaResta(c3.toString()) : 0;
+            double v4 = c4 != null ? evaluaSumaResta(c4.toString()) : 0;
             matrix.add(new ArrayList<>(List.of(category, v2, v3, v4)));
         }
         return matrix;
@@ -346,4 +346,19 @@ public class ExcelServiceUseCase implements ExcelServicePort {
     interface ThrowingConsumer<T> {
         void accept(T t) throws Exception;
     }
+    private double evaluaSumaResta(String expr) {
+        if (expr == null || expr.isBlank()) return 0;
+        expr = expr.replace(",", ".").replaceAll("[^0-9+\\-\\.]", "");
+        try {
+            double resultado = 0;
+            String[] tokens = expr.split("(?=[+-])");
+            for (String token : tokens) {
+                resultado += Double.parseDouble(token.trim());
+            }
+            return resultado;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
 }
