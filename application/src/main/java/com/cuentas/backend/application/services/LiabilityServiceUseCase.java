@@ -82,7 +82,7 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
         l.setName(rs.getString("name"));
         l.setDescription(rs.getString("description"));
         l.setPrincipalAmount(rs.getDouble("principal_amount"));
-        l.setInterestRate(rs.getDouble("interest_rate"));
+        l.setInterestRate(rs.getBigDecimal("interest_rate"));
         l.setStartDate(rs.getDate("start_date") != null ? rs.getDate("start_date").toLocalDate() : null);
         l.setEndDate(rs.getDate("end_date") != null ? rs.getDate("end_date").toLocalDate() : null);
         l.setOutstandingBalance(rs.getDouble("outstanding_balance"));

@@ -1,40 +1,20 @@
 package com.cuentas.backend.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DashboardMetrics {
 
-    private BigDecimal totalIncome;
-    private BigDecimal totalExpense;
-    private BigDecimal netProfit;
-
-    public DashboardMetrics() {
-        this.totalIncome = BigDecimal.ZERO;
-        this.totalExpense = BigDecimal.ZERO;
-        this.netProfit = BigDecimal.ZERO;
-    }
-
-    public BigDecimal getTotalIncome() {
-        return totalIncome;
-    }
-
-    public void setTotalIncome(BigDecimal totalIncome) {
-        this.totalIncome = totalIncome;
-    }
-
-    public BigDecimal getTotalExpense() {
-        return totalExpense;
-    }
-
-    public void setTotalExpense(BigDecimal totalExpense) {
-        this.totalExpense = totalExpense;
-    }
-
-    public BigDecimal getNetProfit() {
-        return netProfit;
-    }
-
-    public void setNetProfit(BigDecimal netProfit) {
-        this.netProfit = netProfit;
-    }
+    private BigDecimal totalIncome;     // Suma de ingresos en el periodo
+    private BigDecimal totalExpenses;   // Suma de gastos en el periodo
+    private BigDecimal netBalance;      // Diferencia: ingresos - gastos
+    private Asset bestAsset;            // Activo con mayor valor
+    private Asset worstAsset;           // Activo con menor valor
 }

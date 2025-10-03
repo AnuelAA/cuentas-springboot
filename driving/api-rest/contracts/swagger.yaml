@@ -19,6 +19,8 @@ tags:
     description: Gestión de transacciones
   - name: Excel
     description: Importación de Excel
+  - name: Dashboard
+    description: Métricas y resúmenes financieros
 
 paths:
 
@@ -82,6 +84,18 @@ paths:
           required: true
           schema:
             type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
       responses:
         '200':
           description: Lista de categorías
@@ -193,6 +207,18 @@ paths:
           required: true
           schema:
             type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
       responses:
         '200':
           description: Lista de activos
@@ -320,6 +346,18 @@ paths:
           required: true
           schema:
             type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
       responses:
         '200':
           description: Lista de pasivos
@@ -459,6 +497,18 @@ paths:
           required: true
           schema:
             type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
       responses:
         '200':
           description: Lista de transacciones
@@ -632,8 +682,145 @@ paths:
         '200':
           description: Excel procesado correctamente
 
+  /users/{userId}/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Obtener métricas del dashboard general
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Métricas de dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetrics'
+
+  /users/{userId}/dashboard/assets/{assetId}/performance:
+    get:
+      tags: [Dashboard]
+      summary: Obtener rentabilidad de un activo
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Rentabilidad del activo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetPerformance'
+
+  /users/{userId}/dashboard/liabilities/{liabilityId}/progress:
+    get:
+      tags: [Dashboard]
+      summary: Ver progreso de un pasivo (ej. hipoteca)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Progreso del pasivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiabilityProgress'
 components:
   schemas:
+    DashboardMetrics:
+      type: object
+      properties:
+        totalIncome:
+          type: number
+          format: double
+        totalExpenses:
+          type: number
+          format: double
+        netBalance:
+          type: number
+          format: double
+        bestAsset:
+          $ref: '#/components/schemas/Asset'
+        worstAsset:
+          $ref: '#/components/schemas/Asset'
+
+    AssetPerformance:
+      type: object
+      properties:
+        assetId:
+          type: integer
+        initialValue:
+          type: number
+          format: double
+        currentValue:
+          type: number
+          format: double
+        roi:
+          type: number
+          format: double
+          description: "Return On Investment (%) en el periodo"
+
+    LiabilityProgress:
+      type: object
+      properties:
+        liabilityId:
+          type: integer
+        principalPaid:
+          type: number
+          format: double
+        interestPaid:
+          type: number
+          format: double
+        remainingBalance:
+          type: number
+          format: double
+        progressPercentage:
+          type: number
+          format: double
     User:
       type: object
       properties:
