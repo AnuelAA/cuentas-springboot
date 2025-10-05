@@ -84,18 +84,6 @@ paths:
           required: true
           schema:
             type: integer
-        - name: startDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: endDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
       responses:
         '200':
           description: Lista de categorías
@@ -207,18 +195,6 @@ paths:
           required: true
           schema:
             type: integer
-        - name: startDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: endDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
       responses:
         '200':
           description: Lista de activos
@@ -346,18 +322,6 @@ paths:
           required: true
           schema:
             type: integer
-        - name: startDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: endDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
       responses:
         '200':
           description: Lista de pasivos
@@ -499,16 +463,31 @@ paths:
             type: integer
         - name: startDate
           in: query
-          required: true
+          required: false
           schema:
             type: string
             format: date
         - name: endDate
           in: query
-          required: true
+          required: false
           schema:
             type: string
             format: date
+        - name: liabilityId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: assertId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         '200':
           description: Lista de transacciones
@@ -559,6 +538,27 @@ paths:
                 $ref: '#/components/schemas/Transaction'
 
   /users/{userId}/transactions/{transactionId}:
+    get:
+      tags: [ Transactions ]
+      summary: Obtener una transaccion de un usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de transacciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
     put:
       tags: [Transactions]
       summary: Actualizar transacción

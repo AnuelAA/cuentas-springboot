@@ -6,6 +6,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -41,11 +43,34 @@ public class TransactionServiceUseCase implements TransactionServicePort {
         return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> mapRow(rs), userId, transactionId);
     }
 
+
     @Override
-    public List<Transaction> listTransactions(Long userId) {
-        String sql = "SELECT * FROM transactions WHERE user_id = ?";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> mapRow(rs), userId);
+    public List<Transaction> listTransactions(Long userId, LocalDate startDate, LocalDate endDate, Long liabilityId, Long assetId, Long categoryId) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM transactions WHERE user_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(userId);
+
+        if (liabilityId != null) {
+            sql.append(" AND liability_id = ?");
+            params.add(liabilityId);
+        }
+        if (assetId != null) {
+            sql.append(" AND asset_id = ?");
+            params.add(assetId);
+        }
+        if (categoryId != null) {
+            sql.append(" AND category_id = ?");
+            params.add(categoryId);
+        }
+        if (startDate != null && endDate != null) {
+            sql.append(" AND transaction_date BETWEEN ? AND ?");
+            params.add(startDate);
+            params.add(endDate);
+        }
+
+        return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> mapRow(rs), params.toArray());
     }
+
 
     @Override
     public Transaction updateTransaction(Long userId, Long transactionId, Transaction transaction) {

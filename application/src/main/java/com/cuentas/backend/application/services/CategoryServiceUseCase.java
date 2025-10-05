@@ -21,8 +21,8 @@ public class CategoryServiceUseCase implements CategoryServicePort {
 
     @Override
     public Category createCategory(Long userId, Category category) {
-        String sql = "INSERT INTO categories (user_id, name, description, type) VALUES (?, ?, ?, ?) RETURNING category_id";
-        Long id = jdbcTemplate.queryForObject(sql, Long.class, userId, category.getName(), category.getDescription(), category.getType());
+        String sql = "INSERT INTO categories (user_id, name, description) VALUES (?, ?, ?) RETURNING category_id";
+        Long id = jdbcTemplate.queryForObject(sql, Long.class, userId, category.getName(), category.getDescription());
         category.setCategoryId(id);
         category.setUserId(userId);
         return category;
@@ -42,8 +42,8 @@ public class CategoryServiceUseCase implements CategoryServicePort {
 
     @Override
     public Category updateCategory(Long userId, Long categoryId, Category category) {
-        String sql = "UPDATE categories SET name = ?, description = ?, type = ?, updated_at = NOW() WHERE user_id = ? AND category_id = ?";
-        jdbcTemplate.update(sql, category.getName(), category.getDescription(), category.getType(), userId, categoryId);
+        String sql = "UPDATE categories SET name = ?, description = ?, updated_at = NOW() WHERE user_id = ? AND category_id = ?";
+        jdbcTemplate.update(sql, category.getName(), category.getDescription(), userId, categoryId);
         return getCategory(userId, categoryId);
     }
 
@@ -59,7 +59,6 @@ public class CategoryServiceUseCase implements CategoryServicePort {
         c.setUserId(rs.getLong("user_id"));
         c.setName(rs.getString("name"));
         c.setDescription(rs.getString("description"));
-        c.setType(rs.getString("type"));
         c.setCreatedAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null);
         c.setUpdatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null);
         return c;

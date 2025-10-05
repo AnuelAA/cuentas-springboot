@@ -1,0 +1,101 @@
+{
+  "name": "cuentas-mcp",
+  "version": "1.0.0",
+  "protocol": "jsonrpc",
+  "transport": {
+    "type": "http",
+    "url": "http://localhost:8080/mcp"
+  },
+  "methods": {
+    "createAsset": {
+      "params": { "userId": "number", "asset": "object" },
+      "returns": "object"
+    },
+    "getAsset": {
+      "params": { "userId": "number", "assetId": "number" },
+      "returns": "object"
+    },
+    "listAssets": {
+      "params": { "userId": "number" },
+      "returns": "array"
+    },
+    "updateAsset": {
+      "params": { "userId": "number", "assetId": "number", "asset": "object" },
+      "returns": "object"
+    },
+    "deleteAsset": {
+      "params": { "userId": "number", "assetId": "number" },
+      "returns": "null"
+    },
+
+    "createCategory": {
+      "params": { "userId": "number", "category": "object" },
+      "returns": "object"
+    },
+    "getCategory": {
+      "params": { "userId": "number", "categoryId": "number" },
+      "returns": "object"
+    },
+    "listCategories": {
+      "params": { "userId": "number" },
+      "returns": "array"
+    },
+    "updateCategory": {
+      "params": { "userId": "number", "categoryId": "number", "category": "object" },
+      "returns": "object"
+    },
+    "deleteCategory": {
+      "params": { "userId": "number", "categoryId": "number" },
+      "returns": "null"
+    },
+
+    "createLiability": {
+      "params": { "userId": "number", "liability": "object" },
+      "returns": "object"
+    },
+    "getLiability": {
+      "params": { "userId": "number", "liabilityId": "number" },
+      "returns": "object"
+    },
+    "listLiabilities": {
+      "params": { "userId": "number" },
+      "returns": "array"
+    },
+    "updateLiability": {
+      "params": { "userId": "number", "liabilityId": "number", "liability": "object" },
+      "returns": "object"
+    },
+    "deleteLiability": {
+      "params": { "userId": "number", "liabilityId": "number" },
+      "returns": "null"
+    },
+
+    "createTransaction": {
+      "params": { "userId": "number", "transaction": "object" },
+      "returns": "object"
+    },
+    "getTransaction": {
+      "params": { "userId": "number", "transactionId": "number" },
+      "returns": "object"
+    },
+    "listTransactions": {
+      "params": {
+        "userId": "number",
+        "startDate": "string",
+        "endDate": "string",
+        "liabilityId": "number?",
+        "assetId": "number?",
+        "categoryId": "number?"
+      },
+      "returns": "array"
+    },
+    "updateTransaction": {
+      "params": { "userId": "number", "transactionId": "number", "transaction": "object" },
+      "returns": "object"
+    },
+    "deleteTransaction": {
+      "params": { "userId": "number", "transactionId": "number" },
+      "returns": "null"
+    }
+  }
+}

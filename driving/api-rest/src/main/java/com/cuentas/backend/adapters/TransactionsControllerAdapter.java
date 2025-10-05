@@ -2,9 +2,12 @@ package com.cuentas.backend.adapters;
 
 import com.cuentas.backend.application.ports.driving.TransactionServicePort;
 import com.cuentas.backend.domain.Transaction;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,8 +21,13 @@ public class TransactionsControllerAdapter {
     }
 
     @GetMapping
-    public ResponseEntity<List<Transaction>> listTransactions(@PathVariable Long userId) {
-        return ResponseEntity.ok(transactionService.listTransactions(userId));
+    public ResponseEntity<List<Transaction>> listTransactions(@PathVariable Long userId,
+                                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                                              @RequestParam(required = false) Long liabilityId,
+                                                              @RequestParam(required = false) Long assetId,
+                                                              @RequestParam(required = false) Long categoryId) {
+        return ResponseEntity.ok(transactionService.listTransactions(userId,startDate,endDate, liabilityId, assetId, categoryId));
     }
 
     @GetMapping("/{transactionId}")

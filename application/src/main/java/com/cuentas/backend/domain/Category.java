@@ -15,7 +15,6 @@ public class Category {
     private Long userId;
     private String name;
     private String description;
-    private String type; // income | expense
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
