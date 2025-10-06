@@ -19,7 +19,6 @@ public class ExcelControllerAdapter {
     private static final Logger log = LoggerFactory.getLogger(ExcelControllerAdapter.class);
 
     private final ExcelServicePort excelServicePort;
-
     private final ExcelNewServicePort excelNewServicePort;
 
     public ExcelControllerAdapter(ExcelServicePort excelServicePort, ExcelNewServicePort excelNewServicePort) {
@@ -33,9 +32,13 @@ public class ExcelControllerAdapter {
             @RequestParam("year") int year,
             @RequestParam("file") MultipartFile file
     ) {
+        log.info("Solicitud de importación de Excel para userId={}, year={}, file={}", userId, year, file != null ? file.getOriginalFilename() : null);
+
         if (file == null || file.isEmpty()) {
             log.warn("Usuario {} intentó subir un Excel vacío", userId);
-            return ResponseEntity.badRequest().body("El archivo Excel no puede estar vacío");
+            ResponseEntity<?> response = ResponseEntity.badRequest().body("El archivo Excel no puede estar vacío");
+            log.info("Respuesta importExcel: {}", response);
+            return response;
         }
 
         try {
@@ -47,15 +50,21 @@ public class ExcelControllerAdapter {
             excelServicePort.processExcel(domainFile, year, userId);
             log.info("Procesado Excel correctamente para usuario {} año {}", userId, year);
 
-            return ResponseEntity.ok("Archivo Excel procesado correctamente");
+            ResponseEntity<?> response = ResponseEntity.ok("Archivo Excel procesado correctamente");
+            log.info("Respuesta importExcel: {}", response);
+            return response;
         } catch (IOException e) {
             log.error("Error leyendo el archivo Excel: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            ResponseEntity<?> response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("No se pudo leer el archivo Excel");
+            log.info("Respuesta importExcel: {}", response);
+            return response;
         } catch (RuntimeException e) {
             log.error("Error procesando el Excel para usuario {}: {}", userId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            ResponseEntity<?> response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error procesando el archivo Excel: " + e.getMessage());
+            log.info("Respuesta importExcel: {}", response);
+            return response;
         }
     }
 
@@ -65,9 +74,13 @@ public class ExcelControllerAdapter {
             @RequestParam("year") int year,
             @RequestParam("file") MultipartFile file
     ) {
+        log.info("Solicitud de importación de Excel (nuevo) para userId={}, year={}, file={}", userId, year, file != null ? file.getOriginalFilename() : null);
+
         if (file == null || file.isEmpty()) {
             log.warn("Usuario {} intentó subir un Excel vacío", userId);
-            return ResponseEntity.badRequest().body("El archivo Excel no puede estar vacío");
+            ResponseEntity<?> response = ResponseEntity.badRequest().body("El archivo Excel no puede estar vacío");
+            log.info("Respuesta importExcelNew: {}", response);
+            return response;
         }
 
         try {
@@ -79,15 +92,21 @@ public class ExcelControllerAdapter {
             excelNewServicePort.processExcel(domainFile, year, userId);
             log.info("Procesado Excel correctamente para usuario {} año {}", userId, year);
 
-            return ResponseEntity.ok("Archivo Excel procesado correctamente");
+            ResponseEntity<?> response = ResponseEntity.ok("Archivo Excel procesado correctamente");
+            log.info("Respuesta importExcelNew: {}", response);
+            return response;
         } catch (IOException e) {
             log.error("Error leyendo el archivo Excel: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            ResponseEntity<?> response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("No se pudo leer el archivo Excel");
+            log.info("Respuesta importExcelNew: {}", response);
+            return response;
         } catch (RuntimeException e) {
             log.error("Error procesando el Excel para usuario {}: {}", userId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            ResponseEntity<?> response = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error procesando el archivo Excel: " + e.getMessage());
+            log.info("Respuesta importExcelNew: {}", response);
+            return response;
         }
     }
 }
