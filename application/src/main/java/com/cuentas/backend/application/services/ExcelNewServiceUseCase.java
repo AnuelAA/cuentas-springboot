@@ -128,7 +128,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
             String name = catCell.toString() ;
             Long assetTypeId = getAssetTypeId(typeCell.toString());
-            LocalDate acqDate = acqDateCell != null && !acqDateCell.toString().isBlank() ? LocalDate.parse(acqDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy", new java.util.Locale("es"))) : null;
+            LocalDate acqDate = acqDateCell != null && !acqDateCell.toString().isBlank() ? LocalDate.parse(acqDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : null;
             Double acqValue = acqValueCell != null ? evaluaSumaResta(acqValueCell.toString()) : 0D;
             Double currentValue = evaluaSumaResta(currentValueCell.toString());
 
@@ -165,8 +165,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             BigDecimal interestRate = interestRateCell != null && !interestRateCell.toString().isBlank()
                     ? new BigDecimal(interestRateCell.toString().replace(",", "."))
                     : BigDecimal.ZERO;
-            LocalDate startDate = startDateCell != null && !startDateCell.toString().isBlank() ? LocalDate.parse(startDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy", new java.util.Locale("es"))) : null;
-            LocalDate endDate = endDateCell != null && !endDateCell.toString().isBlank() ? LocalDate.parse(endDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy", new java.util.Locale("es"))) : null;
+            LocalDate startDate = startDateCell != null && !startDateCell.toString().isBlank() ? LocalDate.parse(startDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : null;
+            LocalDate endDate = endDateCell != null && !endDateCell.toString().isBlank() ? LocalDate.parse(endDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : null;
             var outstandingBalance = evaluaSumaResta(outstandingBalanceCell.toString());
 
             upsertLiability(userId, liabilityTypeId, name,priAmount,interestRate,startDate,endDate, outstandingBalance);
