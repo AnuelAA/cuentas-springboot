@@ -20,11 +20,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.openapitools</groupId>
-                <artifactId>mi-backoffice-api</artifactId>
-                <version>1.0.0</version>
-            </dependency>
-            <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <scope>provided</scope>

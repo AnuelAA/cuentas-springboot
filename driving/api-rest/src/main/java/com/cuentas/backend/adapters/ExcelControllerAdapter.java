@@ -3,8 +3,6 @@ package com.cuentas.backend.adapters;
 import com.cuentas.backend.application.ports.driving.ExcelNewServicePort;
 import com.cuentas.backend.application.ports.driving.ExcelServicePort;
 import com.cuentas.backend.domain.File;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,7 +12,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
-@Tag(name = "Excel", description = "Endpoints para importar y procesar archivos Excel")
 @RestController
 @RequestMapping("/api/users/{userId}/excel")
 public class ExcelControllerAdapter {
@@ -30,7 +27,6 @@ public class ExcelControllerAdapter {
         this.excelNewServicePort = excelNewServicePort;
     }
 
-    @Operation(summary = "Importar y procesar Excel", description = "Importa un archivo Excel con matrices de ingresos, gastos, activos y pasivos para un usuario y año específicos")
     @PostMapping("/import")
     public ResponseEntity<?> importExcel(
             @PathVariable("userId") long userId,
@@ -63,7 +59,6 @@ public class ExcelControllerAdapter {
         }
     }
 
-    @Operation(summary = "Importar y procesar Excel", description = "Importa un archivo Excel con matrices de ingresos, gastos, activos y pasivos para un usuario y año específicos")
     @PostMapping("/importNew")
     public ResponseEntity<?> importExcelNew(
             @PathVariable("userId") long userId,
