@@ -1,539 +1,476 @@
 openapi: 3.0.1
 info:
-  title: Cuentas Backend API
-  version: "1.0.0"
-  description: API para gestión de usuarios, categorías, activos, pasivos y transacciones financieras.
+  title: OpenAPI definition
+  version: v0
 servers:
-  - url: http://localhost:8080/api/v1
-    description: Servidor local
-tags:
-  - name: Users
-    description: Gestión de usuarios
-  - name: Categories
-    description: Gestión de categorías de ingresos/gastos
-  - name: Assets
-    description: Gestión de activos
-  - name: Liabilities
-    description: Gestión de pasivos
-  - name: Transactions
-    description: Gestión de transacciones
-  - name: Excel
-    description: Importación de Excel
-  - name: Dashboard
-    description: Métricas y resúmenes financieros
-
+  - url: https://cuentas-springboot.onrender.com
+    description: Generated server url
 paths:
-
-  # ===============================
-  # USERS
-  # ===============================
-  /users:
-    post:
-      tags: [Users]
-      summary: Crear un usuario
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, email, password]
-              properties:
-                name:
-                  type: string
-                email:
-                  type: string
-                password:
-                  type: string
+  /api/users/{userId}:
+    get:
+      tags:
+        - users-controller-adapter
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
-        '201':
-          description: Usuario creado
+        '200':
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/User'
-
-  /users/{userId}:
-    get:
-      tags: [Users]
-      summary: Obtener un usuario por ID
+    put:
+      tags:
+        - users-controller-adapter
+      operationId: updateUser
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
       responses:
         '200':
-          description: Usuario encontrado
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/User'
-
-  # ===============================
-  # CATEGORIES
-  # ===============================
-  /users/{userId}/categories:
-    get:
-      tags: [Categories]
-      summary: Listar categorías de un usuario
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Lista de categorías
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Category'
-
-    post:
-      tags: [Categories]
-      summary: Crear categoría para usuario
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, type]
-              properties:
-                name:
-                  type: string
-                type:
-                  type: string
-                  enum: [income, expense]
-                description:
-                  type: string
-      responses:
-        '201':
-          description: Categoría creada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Category'
-
-  /users/{userId}/categories/{categoryId}:
-    put:
-      tags: [Categories]
-      summary: Actualizar categoría
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: categoryId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, type]
-              properties:
-                name:
-                  type: string
-                type:
-                  type: string
-                  enum: [income, expense]
-                description:
-                  type: string
-      responses:
-        '200':
-          description: Categoría actualizada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Category'
-
     delete:
-      tags: [Categories]
-      summary: Borrar categoría
+      tags:
+        - users-controller-adapter
+      operationId: deleteUser
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: categoryId
-          in: path
-          required: true
-          schema:
-            type: integer
+            format: int64
       responses:
-        '204':
-          description: Categoría borrada
-
-  # ===============================
-  # ASSETS
-  # ===============================
-  /users/{userId}/assets:
+        '200':
+          description: OK
+  /api/users/{userId}/transactions/{transactionId}:
     get:
-      tags: [Assets]
-      summary: Listar activos de un usuario
+      tags:
+        - transactions-controller-adapter
+      operationId: getTransaction
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
         '200':
-          description: Lista de activos
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Asset'
-
-    post:
-      tags: [Assets]
-      summary: Crear un activo
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, assetTypeId, acquisitionValue, currentValue]
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                assetTypeId:
-                  type: integer
-                acquisitionValue:
-                  type: number
-                  format: double
-                currentValue:
-                  type: number
-                  format: double
-                acquisitionDate:
-                  type: string
-                  format: date
-      responses:
-        '201':
-          description: Activo creado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Asset'
-
-  /users/{userId}/assets/{assetId}:
+                $ref: '#/components/schemas/Transaction'
     put:
-      tags: [Assets]
-      summary: Actualizar activo
+      tags:
+        - transactions-controller-adapter
+      operationId: updateTransaction
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: assetId
+            format: int64
+        - name: transactionId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [name, assetTypeId, acquisitionValue, currentValue]
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                assetTypeId:
-                  type: integer
-                acquisitionValue:
-                  type: number
-                  format: double
-                currentValue:
-                  type: number
-                  format: double
-                acquisitionDate:
-                  type: string
-                  format: date
+              $ref: '#/components/schemas/Transaction'
+        required: true
       responses:
         '200':
-          description: Activo actualizado
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/Asset'
-
+                $ref: '#/components/schemas/Transaction'
     delete:
-      tags: [Assets]
-      summary: Borrar activo
+      tags:
+        - transactions-controller-adapter
+      operationId: deleteTransaction
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: assetId
+            format: int64
+        - name: transactionId
           in: path
           required: true
           schema:
             type: integer
-      responses:
-        '204':
-          description: Activo borrado
-  # ===============================
-  # ASSET ROI & PERFORMANCE DETAIL
-  # ===============================
-  /users/{userId}/assets/{assetId}/roi:
-    get:
-      tags: [Assets]
-      summary: Calcular ROI (Return on Investment) de un activo
-      description: >
-        Calcula el ROI (Return on Investment) de un activo usando las transacciones asociadas.
-        Considera ingresos (alquileres, dividendos, plusvalías) y egresos (gastos, mantenimiento, intereses, comunidad, etc.)
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: assetId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: startDate
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date
-        - name: endDate
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date
+            format: int64
       responses:
         '200':
-          description: ROI del activo calculado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssetROI'
-
-  /users/{userId}/assets/{assetId}/roi/monthly:
+          description: OK
+  /api/users/{userId}/settings:
     get:
-      tags: [Assets]
-      summary: Obtener ROI mensual de un activo
-      description: >
-        Devuelve la rentabilidad mensual del activo en base a sus ingresos, gastos y valor actual.
-        Ideal para comparar la evolución de la inversión (por ejemplo, un piso alquilado o un fondo monetario).
+      tags:
+        - users-controller-adapter
+      operationId: getUserSettings
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: assetId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: year
-          in: query
-          required: false
-          schema:
-            type: integer
+            format: int64
       responses:
         '200':
-          description: Rentabilidad mensual del activo
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MonthlyROI'
-
-  # ===============================
-  # LIABILITIES
-  # ===============================
-  /users/{userId}/liabilities:
-    get:
-      tags: [Liabilities]
-      summary: Listar pasivos de un usuario
+                $ref: '#/components/schemas/UserSettings'
+    put:
+      tags:
+        - users-controller-adapter
+      operationId: updateUserSettings
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-      responses:
-        '200':
-          description: Lista de pasivos
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Liability'
-
-    post:
-      tags: [Liabilities]
-      summary: Crear un pasivo
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
+            format: int64
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [name, liabilityTypeId, principalAmount, outstandingBalance]
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                liabilityTypeId:
-                  type: integer
-                principalAmount:
-                  type: number
-                  format: double
-                interestRate:
-                  type: number
-                  format: double
-                startDate:
-                  type: string
-                  format: date
-                endDate:
-                  type: string
-                  format: date
-                outstandingBalance:
-                  type: number
-                  format: double
+              $ref: '#/components/schemas/UserSettings'
+        required: true
       responses:
-        '201':
-          description: Pasivo creado
+        '200':
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/Liability'
-
-  /users/{userId}/liabilities/{liabilityId}:
-    put:
-      tags: [Liabilities]
-      summary: Actualizar pasivo
+                $ref: '#/components/schemas/UserSettings'
+  /api/users/{userId}/liabilities/{liabilityId}:
+    get:
+      tags:
+        - liabilities-controller-adapter
+      operationId: getLiability
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
         - name: liabilityId
           in: path
           required: true
           schema:
             type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name, liabilityTypeId, principalAmount, outstandingBalance]
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                liabilityTypeId:
-                  type: integer
-                principalAmount:
-                  type: number
-                  format: double
-                interestRate:
-                  type: number
-                  format: double
-                startDate:
-                  type: string
-                  format: date
-                endDate:
-                  type: string
-                  format: date
-                outstandingBalance:
-                  type: number
-                  format: double
+            format: int64
       responses:
         '200':
-          description: Pasivo actualizado
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/Liability'
-
-    delete:
-      tags: [Liabilities]
-      summary: Borrar pasivo
+    put:
+      tags:
+        - liabilities-controller-adapter
+      operationId: updateLiability
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
         - name: liabilityId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Liability'
+        required: true
       responses:
-        '204':
-          description: Pasivo borrado
-
-  # ===============================
-  # TRANSACTIONS
-  # ===============================
-  /users/{userId}/transactions:
-    get:
-      tags: [Transactions]
-      summary: Listar transacciones de un usuario
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Liability'
+    delete:
+      tags:
+        - liabilities-controller-adapter
+      operationId: deleteLiability
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
+        - name: liabilityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+  /api/users/{userId}/categories/{categoryId}:
+    get:
+      tags:
+        - categories-controller-adapter
+      operationId: getCategory
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Category'
+    put:
+      tags:
+        - categories-controller-adapter
+      operationId: updateCategory
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Category'
+    delete:
+      tags:
+        - categories-controller-adapter
+      operationId: deleteCategory
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+  /api/users/{userId}/assets/{assetId}:
+    get:
+      tags:
+        - assets-controller-adapter
+      operationId: getAsset
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Asset'
+    put:
+      tags:
+        - assets-controller-adapter
+      operationId: updateAsset
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asset'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Asset'
+    delete:
+      tags:
+        - assets-controller-adapter
+      operationId: deleteAsset
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+  /mcp:
+    post:
+      tags:
+        - mcp-controller-adapter
+      operationId: handleRpc
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: object
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+  /api/users:
+    get:
+      tags:
+        - users-controller-adapter
+      operationId: getAllUsers
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      tags:
+        - users-controller-adapter
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/User'
+  /api/users/{userId}/transactions:
+    get:
+      tags:
+        - transactions-controller-adapter
+      operationId: listTransactions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
         - name: startDate
           in: query
           required: false
@@ -551,172 +488,127 @@ paths:
           required: false
           schema:
             type: integer
-        - name: assertId
+            format: int64
+        - name: assetId
           in: query
           required: false
           schema:
             type: integer
+            format: int64
         - name: categoryId
           in: query
           required: false
           schema:
             type: integer
+            format: int64
+        - name: relatedAssetId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
       responses:
         '200':
-          description: Lista de transacciones
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Transaction'
-
     post:
-      tags: [Transactions]
-      summary: Crear transacción
+      tags:
+        - transactions-controller-adapter
+      operationId: createTransaction
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [amount, transactionDate]
-              properties:
-                categoryId:
-                  type: integer
-                assetId:
-                  type: integer
-                liabilityId:
-                  type: integer
-                amount:
-                  type: number
-                  format: double
-                transactionDate:
-                  type: string
-                  format: date
-                description:
-                  type: string
+              $ref: '#/components/schemas/Transaction'
+        required: true
       responses:
-        '201':
-          description: Transacción creada
+        '200':
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/Transaction'
-
-  /users/{userId}/transactions/{transactionId}:
+  /api/users/{userId}/liabilities:
     get:
-      tags: [ Transactions ]
-      summary: Obtener una transaccion de un usuario
+      tags:
+        - liabilities-controller-adapter
+      operationId: listLiabilities
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: transactionId
-          in: path
-          required: true
-          schema:
-            type: integer
+            format: int64
       responses:
         '200':
-          description: Lista de transacciones
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/Transaction'
-    put:
-      tags: [Transactions]
-      summary: Actualizar transacción
+                type: array
+                items:
+                  $ref: '#/components/schemas/Liability'
+    post:
+      tags:
+        - liabilities-controller-adapter
+      operationId: createLiability
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: transactionId
-          in: path
-          required: true
-          schema:
-            type: integer
+            format: int64
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [amount, transactionDate]
-              properties:
-                categoryId:
-                  type: integer
-                assetId:
-                  type: integer
-                liabilityId:
-                  type: integer
-                amount:
-                  type: number
-                  format: double
-                transactionDate:
-                  type: string
-                  format: date
-                description:
-                  type: string
+              $ref: '#/components/schemas/Liability'
+        required: true
       responses:
         '200':
-          description: Transacción actualizada
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/Transaction'
-
-    delete:
-      tags: [Transactions]
-      summary: Borrar transacción
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: transactionId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '204':
-          description: Transacción borrada
-
-  # ===============================
-  # EXCEL IMPORT
-  # ===============================
-  /users/{userId}/excel/import:
+                $ref: '#/components/schemas/Liability'
+  /api/users/{userId}/excel/import:
     post:
-      tags: [Excel]
-      summary: Subir y procesar un Excel
+      tags:
+        - excel-controller-adapter
+      operationId: importExcel
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
         - name: year
           in: query
           required: true
           schema:
             type: integer
+            format: int32
       requestBody:
-        required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
+              required:
+                - file
               type: object
               properties:
                 file:
@@ -724,28 +616,35 @@ paths:
                   format: binary
       responses:
         '200':
-          description: Excel procesado correctamente
-
-  /users/{userId}/excel/importNew:
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/users/{userId}/excel/importNew:
     post:
-      tags: [Excel]
-      summary: Subir y procesar un Excel
+      tags:
+        - excel-controller-adapter
+      operationId: importExcelNew
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
         - name: year
           in: query
           required: true
           schema:
             type: integer
+            format: int32
       requestBody:
-        required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
+              required:
+                - file
               type: object
               properties:
                 file:
@@ -753,18 +652,113 @@ paths:
                   format: binary
       responses:
         '200':
-          description: Excel procesado correctamente
-
-  /users/{userId}/dashboard:
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/users/{userId}/categories:
     get:
-      tags: [Dashboard]
-      summary: Obtener métricas del dashboard general
+      tags:
+        - categories-controller-adapter
+      operationId: listCategories
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      tags:
+        - categories-controller-adapter
+      operationId: createCategory
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Category'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Category'
+  /api/users/{userId}/assets:
+    get:
+      tags:
+        - assets-controller-adapter
+      operationId: listAssets
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+    post:
+      tags:
+        - assets-controller-adapter
+      operationId: createAsset
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asset'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Asset'
+  /api/users/{userId}/dashboard:
+    get:
+      tags:
+        - dashboard-controller-adapter
+      operationId: getDashboard
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
         - name: startDate
           in: query
           required: true
@@ -779,155 +773,203 @@ paths:
             format: date
       responses:
         '200':
-          description: Métricas de dashboard
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/DashboardMetrics'
-
-  /users/{userId}/dashboard/assets/{assetId}/performance:
+  /api/users/{userId}/dashboard/summary:
     get:
-      tags: [Dashboard]
-      summary: Obtener rentabilidad de un activo
+      tags:
+        - dashboard-controller-adapter
+      operationId: getPeriodSummary
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
-        - name: assetId
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: startDate
+            format: int64
+        - name: period
           in: query
-          required: true
+          required: false
           schema:
             type: string
-            format: date
-        - name: endDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
+            default: month
       responses:
         '200':
-          description: Rentabilidad del activo
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: '#/components/schemas/AssetPerformance'
-
-  /users/{userId}/dashboard/assets/performance/monthly:
+                $ref: '#/components/schemas/PeriodSummary'
+  /api/users/{userId}/dashboard/summary/monthly:
     get:
-      tags: [Dashboard]
-      summary: Ver rentabilidad mensual de todos los activos
-      description: >
-        Devuelve la rentabilidad mes a mes de todos los activos del usuario, 
-        útil para fondos de inversión o inmuebles en alquiler.
+      tags:
+        - dashboard-controller-adapter
+      operationId: getMonthlySummary
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
         - name: year
           in: query
           required: false
           schema:
             type: integer
+            format: int32
       responses:
         '200':
-          description: Rentabilidad mensual por activo
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AssetMonthlyPerformance'
-
-  /users/{userId}/dashboard/liabilities/{liabilityId}/progress:
+                  $ref: '#/components/schemas/PeriodSummary'
+  /api/users/{userId}/dashboard/liabilities/{liabilityId}/progress:
     get:
-      tags: [Dashboard]
-      summary: Ver progreso de un pasivo (ej. hipoteca)
+      tags:
+        - dashboard-controller-adapter
+      operationId: getLiabilityProgress
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
         - name: liabilityId
           in: path
           required: true
           schema:
             type: integer
+            format: int64
       responses:
         '200':
-          description: Progreso del pasivo
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/LiabilityProgress'
-
+  /api/users/{userId}/dashboard/assets/{assetId}/performance:
+    get:
+      tags:
+        - dashboard-controller-adapter
+      operationId: getAssetPerformance
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AssetPerformance'
+  /api/users/{userId}/assets/{assetId}/roi:
+    get:
+      tags:
+        - assets-controller-adapter
+      operationId: calculateAssetRoi
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AssetROI'
+  /api/users/{userId}/assets/{assetId}/roi/monthly:
+    get:
+      tags:
+        - assets-controller-adapter
+      operationId: getMonthlyRoi
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MonthlyROI'
 components:
   schemas:
-    DashboardMetrics:
-      type: object
-      properties:
-        totalIncome:
-          type: number
-          format: double
-        totalExpenses:
-          type: number
-          format: double
-        netBalance:
-          type: number
-          format: double
-        bestAsset:
-          $ref: '#/components/schemas/Asset'
-        worstAsset:
-          $ref: '#/components/schemas/Asset'
-
-    AssetPerformance:
-      type: object
-      properties:
-        assetId:
-          type: integer
-        initialValue:
-          type: number
-          format: double
-        currentValue:
-          type: number
-          format: double
-        roi:
-          type: number
-          format: double
-          description: "Return On Investment (%) en el periodo"
-
-    LiabilityProgress:
-      type: object
-      properties:
-        liabilityId:
-          type: integer
-        principalPaid:
-          type: number
-          format: double
-        interestPaid:
-          type: number
-          format: double
-        remainingBalance:
-          type: number
-          format: double
-        progressPercentage:
-          type: number
-          format: double
     User:
       type: object
       properties:
         userId:
           type: integer
+          format: int64
         name:
           type: string
         email:
@@ -940,66 +982,74 @@ components:
         updatedAt:
           type: string
           format: date-time
-
-    Category:
+    Transaction:
       type: object
       properties:
+        transactionId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
         categoryId:
           type: integer
-        userId:
-          type: integer
-        name:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-          enum: [income, expense]
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    Asset:
-      type: object
-      properties:
+          format: int64
         assetId:
           type: integer
-        userId:
+          format: int64
+        relatedAssetId:
           type: integer
-        assetTypeId:
+          format: int64
+        liabilityId:
           type: integer
-        name:
-          type: string
-        description:
-          type: string
-        acquisitionDate:
+          format: int64
+        amount:
+          type: number
+          format: double
+        transactionDate:
           type: string
           format: date
-        acquisitionValue:
-          type: number
-          format: double
-        currentValue:
-          type: number
-          format: double
+        description:
+          type: string
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-
+    UserSettings:
+      type: object
+      properties:
+        settingId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        darkMode:
+          type: boolean
+        language:
+          type: string
+        notificationsEmail:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     Liability:
       type: object
       properties:
         liabilityId:
           type: integer
+          format: int64
         userId:
           type: integer
+          format: int64
         liabilityTypeId:
           type: integer
+          format: int64
         name:
           type: string
         description:
@@ -1009,7 +1059,6 @@ components:
           format: double
         interestRate:
           type: number
-          format: double
         startDate:
           type: string
           format: date
@@ -1025,35 +1074,130 @@ components:
         updatedAt:
           type: string
           format: date-time
-
+    Category:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Asset:
+      type: object
+      properties:
+        assetId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        assetTypeId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        acquisitionDate:
+          type: string
+          format: date
+        acquisitionValue:
+          type: number
+          format: double
+        currentValue:
+          type: number
+          format: double
+    DashboardMetrics:
+      type: object
+      properties:
+        totalIncome:
+          type: number
+        totalExpenses:
+          type: number
+        netBalance:
+          type: number
+        bestAsset:
+          $ref: '#/components/schemas/Asset'
+        worstAsset:
+          $ref: '#/components/schemas/Asset'
+    PeriodSummary:
+      type: object
+      properties:
+        period:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        totalIncome:
+          type: number
+        totalExpenses:
+          type: number
+        netProfit:
+          type: number
+    LiabilityProgress:
+      type: object
+      properties:
+        liabilityId:
+          type: integer
+          format: int64
+        principalPaid:
+          type: number
+        interestPaid:
+          type: number
+        remainingBalance:
+          type: number
+        progressPercentage:
+          type: number
+    AssetPerformance:
+      type: object
+      properties:
+        assetId:
+          type: integer
+          format: int64
+        initialValue:
+          type: number
+        currentValue:
+          type: number
+          format: double
+        roi:
+          type: number
     AssetROI:
       type: object
       properties:
         assetId:
           type: integer
+          format: int64
         totalIncome:
           type: number
           format: double
-          description: Ingresos totales en el periodo
         totalExpenses:
           type: number
           format: double
-          description: Gastos totales en el periodo
         netProfit:
           type: number
           format: double
-          description: Beneficio neto (ingresos - gastos)
         roiPercentage:
           type: number
           format: double
-          description: ROI (%) respecto al valor invertido
-
     MonthlyROI:
       type: object
       properties:
         month:
           type: string
-          example: "2025-03"
         income:
           type: number
           format: double
@@ -1066,43 +1210,3 @@ components:
         roiPercentage:
           type: number
           format: double
-
-    AssetMonthlyPerformance:
-      type: object
-      properties:
-        assetId:
-          type: integer
-        assetName:
-          type: string
-        monthlyRoi:
-          type: array
-          items:
-            $ref: '#/components/schemas/MonthlyROI'
-
-    Transaction:
-      type: object
-      properties:
-        transactionId:
-          type: integer
-        userId:
-          type: integer
-        categoryId:
-          type: integer
-        assetId:
-          type: integer
-        liabilityId:
-          type: integer
-        amount:
-          type: number
-          format: double
-        transactionDate:
-          type: string
-          format: date
-        description:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time

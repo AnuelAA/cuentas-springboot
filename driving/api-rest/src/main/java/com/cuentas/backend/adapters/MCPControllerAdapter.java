@@ -4,6 +4,10 @@ import com.cuentas.backend.application.ports.driving.*;
 import com.cuentas.backend.domain.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,16 +27,30 @@ public class MCPControllerAdapter {
     private final CategoryServicePort categoryService;
     private final LiabilityServicePort liabilityService;
     private final TransactionServicePort transactionService;
+    private final UserServicePort userService;
+    private final DashboardServicePort dashboardService;
+    private final ExcelServicePort excelService;
+    private final ExcelNewServicePort excelNewServicePort;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public MCPControllerAdapter(
             AssetServicePort assetService,
             CategoryServicePort categoryService,
             LiabilityServicePort liabilityService,
-            TransactionServicePort transactionService) {
+            TransactionServicePort transactionService,
+            UserServicePort userService,
+            DashboardServicePort dashboardService,
+            ExcelServicePort excelService,
+            ExcelNewServicePort excelNewServicePort){
         this.assetService = assetService;
         this.categoryService = categoryService;
         this.liabilityService = liabilityService;
         this.transactionService = transactionService;
+        this.userService = userService;
+        this.dashboardService = dashboardService;
+        this.excelService = excelService;
+        this.excelNewServicePort = excelNewServicePort;
     }
 
     @PostMapping
@@ -44,6 +62,37 @@ public class MCPControllerAdapter {
 
         try {
             switch (method) {
+                // USERS
+                case "getUserById":
+                case "getUser":
+                    result = userService.getUserById(((Number) params.get("userId")).longValue());
+                    break;
+                case "updateUser":
+                    result = userService.updateUser(
+                            ((Number) params.get("userId")).longValue(),
+                            toObject(params.get("user"), User.class));
+                    break;
+                case "deleteUser":
+                    userService.deleteUser(((Number) params.get("userId")).longValue());
+                    result = Map.of("deleted", true);
+                    break;
+                case "getAllUsers":
+                    result = userService.getAllUsers();
+                    break;
+                case "createUser":
+                    result = userService.createUser(toObject(params.get("user"), User.class));
+                    break;
+
+                // USER SETTINGS
+                case "getUserSettings":
+                    result = userService.getUserSettings(((Number) params.get("userId")).longValue());
+                    break;
+                case "updateUserSettings":
+                    result = userService.updateUserSettings(
+                            ((Number) params.get("userId")).longValue(),
+                            toObject(params.get("settings"), UserSettings.class));
+                    break;
+
                 // ASSETS
                 case "createAsset":
                     result = assetService.createAsset(
@@ -162,6 +211,73 @@ public class MCPControllerAdapter {
                     result = Map.of("deleted", true);
                     break;
 
+                // DASHBOARD
+                case "getDashboard":
+                    result = dashboardService.getMetrics(
+                            ((Number) params.get("userId")).longValue(),
+                            toLocalDate(params.get("startDate")),
+                            toLocalDate(params.get("endDate")));
+                    break;
+                case "getPeriodSummary":
+                    Long uid = ((Number) params.get("userId")).longValue();
+                    String period = params.get("period") != null ? params.get("period").toString() : null;
+                    result = dashboardService.getPeriodSummary(uid, period);
+                    break;
+                case "getMonthlySummary":
+                    result = dashboardService.getMonthlySummary(((Number) params.get("userId")).longValue(),
+                            toInteger(params.get("year")));
+                    break;
+                case "getLiabilityProgress":
+                    result = dashboardService.getLiabilityProgress(
+                            ((Number) params.get("userId")).longValue(),
+                            ((Number) params.get("liabilityId")).longValue());
+                    break;
+                case "getAssetPerformance":
+                    result = dashboardService.getAssetPerformance(
+                            ((Number) params.get("userId")).longValue(),
+                            ((Number) params.get("assetId")).longValue(),
+                            toLocalDate(params.get("startDate")),
+                            toLocalDate(params.get("endDate")));
+                    break;
+
+                // ASSET ROI
+                case "calculateAssetRoi":
+                case "calculateAssetROI":
+                    result = assetService.calculateAssetROI(
+                            ((Number) params.get("userId")).longValue(),
+                            ((Number) params.get("assetId")).longValue(),
+                            toLocalDate(params.get("startDate")),
+                            toLocalDate(params.get("endDate")));
+                    break;
+                case "getMonthlyRoi":
+                case "getMonthlyROI":
+                    result = assetService.calculateMonthlyROI(
+                            ((Number) params.get("userId")).longValue(),
+                            ((Number) params.get("assetId")).longValue(),
+                            toInteger(params.get("year")));
+                    break;
+
+                // EXCEL
+                case "importExcel": {
+                    com.cuentas.backend.domain.File excelFile = toObject(params.get("file"), com.cuentas.backend.domain.File.class);
+                    excelService.processExcel(
+                            excelFile,
+                            ((Number) params.get("year")).intValue(),
+                            ((Number) params.get("userId")).longValue()
+                    );
+                    result = Map.of("processed", true);
+                    break;
+                }
+                case "importExcelNew": {
+                    com.cuentas.backend.domain.File excelFileNew = toObject(params.get("file"), com.cuentas.backend.domain.File.class);
+                    excelNewServicePort.processExcel(
+                            excelFileNew,
+                            ((Number) params.get("year")).intValue(),
+                            ((Number) params.get("userId")).longValue()
+                    );
+                    result = Map.of("processed", true);
+                    break;
+                }
                 // DEFAULT
                 default:
                     ResponseEntity<Map<String, Object>> responseNotFound = ResponseEntity.badRequest().body(Map.of(
@@ -195,7 +311,7 @@ public class MCPControllerAdapter {
 
     // Helpers
     private <T> T toObject(Object raw, Class<T> clazz) {
-        return new ObjectMapper().convertValue(raw, clazz);
+        return objectMapper.convertValue(raw, clazz);
     }
 
     private LocalDate toLocalDate(Object raw) {
@@ -204,5 +320,36 @@ public class MCPControllerAdapter {
 
     private Long toLong(Object raw) {
         return raw != null ? ((Number) raw).longValue() : null;
+    }
+
+    private Integer toInteger(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Number) return ((Number) raw).intValue();
+        try {
+            return Integer.parseInt(raw.toString());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private List<YearMonth> toYearMonthList(Object raw) {
+        if (raw == null) return null;
+        try {
+            if (raw instanceof List) {
+                List<?> list = (List<?>) raw;
+                List<YearMonth> res = new ArrayList<>();
+                for (Object o : list) {
+                    if (o != null) res.add(YearMonth.parse(o.toString()));
+                }
+                return res;
+            } else {
+                List<YearMonth> res = new ArrayList<>();
+                res.add(YearMonth.parse(raw.toString()));
+                return res;
+            }
+        } catch (DateTimeParseException ex) {
+            logger.warn("Formato de months inválido: {}, se ignorará. Esperado YYYY-MM", raw);
+            return null;
+        }
     }
 }
