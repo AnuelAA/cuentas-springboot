@@ -45,7 +45,7 @@ public class TransactionServiceUseCase implements TransactionServicePort {
 
 
     @Override
-    public List<Transaction> listTransactions(Long userId, LocalDate startDate, LocalDate endDate, Long liabilityId, Long assetId, Long categoryId) {
+    public List<Transaction> listTransactions(Long userId, LocalDate startDate, LocalDate endDate, Long liabilityId, Long assetId, Long categoryId, Long relatedAssetId) {
         StringBuilder sql = new StringBuilder("SELECT * FROM transactions WHERE user_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(userId);
@@ -66,6 +66,10 @@ public class TransactionServiceUseCase implements TransactionServicePort {
             sql.append(" AND transaction_date BETWEEN ? AND ?");
             params.add(startDate);
             params.add(endDate);
+        }
+        if (relatedAssetId != null) {
+            sql.append(" AND related_asset_id = ?");
+            params.add(relatedAssetId);
         }
 
         return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> mapRow(rs), params.toArray());
@@ -102,6 +106,7 @@ public class TransactionServiceUseCase implements TransactionServicePort {
         t.setCategoryId(rs.getObject("category_id") != null ? rs.getLong("category_id") : null);
         t.setAssetId(rs.getObject("asset_id") != null ? rs.getLong("asset_id") : null);
         t.setLiabilityId(rs.getObject("liability_id") != null ? rs.getLong("liability_id") : null);
+        t.setRelatedAssetId(rs.getObject("related_asset_id") != null ? rs.getLong("related_asset_id") : null);
         t.setAmount(rs.getDouble("amount"));
         t.setTransactionDate(rs.getDate("transaction_date") != null ? rs.getDate("transaction_date").toLocalDate() : null);
         t.setDescription(rs.getString("description"));

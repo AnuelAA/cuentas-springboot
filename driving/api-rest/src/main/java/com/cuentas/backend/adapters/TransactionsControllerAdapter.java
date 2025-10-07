@@ -30,10 +30,12 @@ public class TransactionsControllerAdapter {
                                                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
                                                               @RequestParam(required = false) Long liabilityId,
                                                               @RequestParam(required = false) Long assetId,
-                                                              @RequestParam(required = false) Long categoryId) {
-        logger.info("Listando transacciones para userId={}, startDate={}, endDate={}, liabilityId={}, assetId={}, categoryId={}",
-                userId, startDate, endDate, liabilityId, assetId, categoryId);
-        List<Transaction> transactions = transactionService.listTransactions(userId, startDate, endDate, liabilityId, assetId, categoryId);
+                                                              @RequestParam(required = false) Long categoryId,
+                                                              @RequestParam(required = false) Long relatedAssetId
+                                                              ) {
+        logger.info("Listando transacciones para userId={}, startDate={}, endDate={}, liabilityId={}, assetId={}, categoryId={}, relatedAssetId={}",
+                userId, startDate, endDate, liabilityId, assetId, categoryId, relatedAssetId);
+        List<Transaction> transactions = transactionService.listTransactions(userId, startDate, endDate, liabilityId, assetId, categoryId, relatedAssetId);
         logger.info("Respuesta listTransactions: {}", transactions);
         return ResponseEntity.ok(transactions);
     }

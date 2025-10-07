@@ -201,7 +201,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
             jdbcTemplate.update(SQL_INSERT_TRANSACTION, userId, categoryId, assetId, liabilityId, relatedAssetId, "income", amount, defaultDate);
 
-            transactionList.add(new Transaction(userId,categoryId,assetId,liabilityId,amount,defaultDate));
+            transactionList.add(new Transaction(userId,categoryId,assetId,liabilityId,relatedAssetId,amount,defaultDate));
         }
         return transactionList;
     }
@@ -232,7 +232,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
             jdbcTemplate.update(SQL_INSERT_TRANSACTION, userId, categoryId, assetId, liabilityId, relatedAssetId, "expense", amount, defaultDate);
 
-            transactionList.add(new Transaction(userId,categoryId,assetId,liabilityId,amount,defaultDate));
+            transactionList.add(new Transaction(userId,categoryId,assetId,liabilityId,relatedAssetId,amount,defaultDate));
         }
         return transactionList;
     }

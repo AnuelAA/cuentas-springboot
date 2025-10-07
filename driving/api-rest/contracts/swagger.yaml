@@ -308,6 +308,79 @@ paths:
       responses:
         '204':
           description: Activo borrado
+  # ===============================
+  # ASSET ROI & PERFORMANCE DETAIL
+  # ===============================
+  /users/{userId}/assets/{assetId}/roi:
+    get:
+      tags: [Assets]
+      summary: Calcular ROI (Return on Investment) de un activo
+      description: >
+        Calcula el ROI (Return on Investment) de un activo usando las transacciones asociadas.
+        Considera ingresos (alquileres, dividendos, plusvalías) y egresos (gastos, mantenimiento, intereses, comunidad, etc.)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: ROI del activo calculado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetROI'
+
+  /users/{userId}/assets/{assetId}/roi/monthly:
+    get:
+      tags: [Assets]
+      summary: Obtener ROI mensual de un activo
+      description: >
+        Devuelve la rentabilidad mensual del activo en base a sus ingresos, gastos y valor actual.
+        Ideal para comparar la evolución de la inversión (por ejemplo, un piso alquilado o un fondo monetario).
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Rentabilidad mensual del activo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MonthlyROI'
 
   # ===============================
   # LIABILITIES
@@ -747,6 +820,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssetPerformance'
 
+  /users/{userId}/dashboard/assets/performance/monthly:
+    get:
+      tags: [Dashboard]
+      summary: Ver rentabilidad mensual de todos los activos
+      description: >
+        Devuelve la rentabilidad mes a mes de todos los activos del usuario, 
+        útil para fondos de inversión o inmuebles en alquiler.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Rentabilidad mensual por activo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssetMonthlyPerformance'
+
   /users/{userId}/dashboard/liabilities/{liabilityId}/progress:
     get:
       tags: [Dashboard]
@@ -769,6 +870,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LiabilityProgress'
+
 components:
   schemas:
     DashboardMetrics:
@@ -923,6 +1025,59 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    AssetROI:
+      type: object
+      properties:
+        assetId:
+          type: integer
+        totalIncome:
+          type: number
+          format: double
+          description: Ingresos totales en el periodo
+        totalExpenses:
+          type: number
+          format: double
+          description: Gastos totales en el periodo
+        netProfit:
+          type: number
+          format: double
+          description: Beneficio neto (ingresos - gastos)
+        roiPercentage:
+          type: number
+          format: double
+          description: ROI (%) respecto al valor invertido
+
+    MonthlyROI:
+      type: object
+      properties:
+        month:
+          type: string
+          example: "2025-03"
+        income:
+          type: number
+          format: double
+        expenses:
+          type: number
+          format: double
+        netProfit:
+          type: number
+          format: double
+        roiPercentage:
+          type: number
+          format: double
+
+    AssetMonthlyPerformance:
+      type: object
+      properties:
+        assetId:
+          type: integer
+        assetName:
+          type: string
+        monthlyRoi:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyROI'
 
     Transaction:
       type: object

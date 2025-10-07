@@ -146,7 +146,8 @@ public class MCPControllerAdapter {
                             toLocalDate(params.get("endDate")),
                             toLong(params.get("liabilityId")),
                             toLong(params.get("assetId")),
-                            toLong(params.get("categoryId")));
+                            toLong(params.get("categoryId")),
+                            toLong(params.get("relatedAssetId")));
                     break;
                 case "updateTransaction":
                     result = transactionService.updateTransaction(

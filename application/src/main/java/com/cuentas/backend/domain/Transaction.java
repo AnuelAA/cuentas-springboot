@@ -17,6 +17,7 @@ public class Transaction {
     private Long userId;
     private Long categoryId;
     private Long assetId;
+    private Long relatedAssetId;
     private Long liabilityId;
     private Double amount;
     private LocalDate transactionDate;
@@ -24,11 +25,12 @@ public class Transaction {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public Transaction(Long userId, Long categoryId, Long assetId, Long liabilityId, Double amount, LocalDate transactionDate) {
+    public Transaction(Long userId, Long categoryId, Long assetId, Long liabilityId, Long relatedAssetId, Double amount, LocalDate transactionDate) {
         this.userId = userId;
         this.categoryId = categoryId;
         this.assetId = assetId;
         this.liabilityId = liabilityId;
+        this.relatedAssetId = relatedAssetId;
         this.amount = amount;
         this.transactionDate = transactionDate;
     }
