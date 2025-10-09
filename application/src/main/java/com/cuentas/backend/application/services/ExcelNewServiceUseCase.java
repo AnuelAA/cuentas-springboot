@@ -16,10 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -34,6 +34,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
     private static final String SQL_SELECT_ASSET_TYPE_ID = "SELECT asset_type_id FROM asset_types WHERE name = ?";
     private static final String SQL_SELECT_LIABILITY_TYPE_ID = "SELECT liability_type_id FROM liability_types WHERE name = ?";
+    private static final String SQL_DELETE_TRANSACTIONS_YEAR =
+            "DELETE FROM transactions WHERE user_id = ? AND transaction_date >= ? AND transaction_date <= ?";
 
     private static final String SQL_INSERT_CATEGORY =
             "INSERT INTO categories (user_id, name, created_at) VALUES (?, ?, NOW()) RETURNING category_id";
@@ -71,7 +73,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
         try (InputStream is = new ByteArrayInputStream(data);
              Workbook workbook = WorkbookFactory.create(is)) {
-
+            log.info("Eliminando transacciones previas para user={} year={}", userId, year);
+            deleteTransactionsForYear(userId, year);
             List<String> months = Arrays.asList(
                     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
@@ -241,6 +244,16 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     // =======================
     // Utilidades
     // =======================
+
+    private void deleteTransactionsForYear(Long userId, int year) {
+        LocalDate start = LocalDate.of(year, 1, 1);
+        LocalDate end = LocalDate.of(year, 12, 31);
+        int deleted = jdbcTemplate.update(SQL_DELETE_TRANSACTIONS_YEAR,
+                userId,
+                start,
+                end);
+        log.info("Transacciones eliminadas para user={} year={}: {}", userId, year, deleted);
+    }
 
     private void upsertLiability(Long userId, Long liabilityTypeId, String name, Double priAmount, BigDecimal interestRate,
                                  LocalDate startDate, LocalDate endDate, Double outstandingBalance) {
