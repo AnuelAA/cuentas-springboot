@@ -17,14 +17,21 @@ import java.util.Map;
 public class AssetServiceUseCase implements AssetServicePort {
 
     private final JdbcTemplate jdbcTemplate;
+    private static final String SQL_SELECT_ASSET_VALUES_BY_ASSET =
+            "SELECT value_id, asset_id, valuation_date, current_value, created_at " +
+                    "FROM asset_values WHERE asset_id = ? ORDER BY valuation_date";
 
+    private static final String SQL_SELECT_ASSET_VALUES_BY_USER =
+            "SELECT av.value_id, av.asset_id, av.valuation_date, av.current_value, av.created_at " +
+                    "FROM asset_values av JOIN assets a ON av.asset_id = a.asset_id " +
+                    "WHERE a.user_id = ? ORDER BY av.asset_id, av.valuation_date";
     public AssetServiceUseCase(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public Asset createAsset(Long userId, Asset asset) {
-        String sql = "INSERT INTO assets (user_id, asset_type_id, name, description, acquisition_date, acquisition_value, current_value) " +
+        String sql = "INSERT INTO assets (user_id, asset_type_id, name, description, acquisition_date, acquisition_value) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING asset_id";
 
         Long id = jdbcTemplate.queryForObject(sql, Long.class,
@@ -33,8 +40,7 @@ public class AssetServiceUseCase implements AssetServicePort {
                 asset.getName(),
                 asset.getDescription(),
                 asset.getAcquisitionDate(),
-                asset.getAcquisitionValue(),
-                asset.getCurrentValue()
+                asset.getAcquisitionValue()
         );
 
         asset.setAssetId(id);
@@ -45,13 +51,36 @@ public class AssetServiceUseCase implements AssetServicePort {
     @Override
     public Asset getAsset(Long userId, Long assetId) {
         String sql = "SELECT * FROM assets WHERE user_id = ? AND asset_id = ?";
-        return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> mapRow(rs), userId, assetId);
+        Asset asset = jdbcTemplate.queryForObject(sql, (rs, rowNum) -> mapRow(rs), userId, assetId);
+
+        List<AssetValue> values = jdbcTemplate.query(SQL_SELECT_ASSET_VALUES_BY_ASSET,
+                (rs, rowNum) -> mapAssetValue(rs),
+                assetId);
+
+        asset.setAssetValues(values);
+        return asset;
     }
 
     @Override
     public List<Asset> listAssets(Long userId) {
         String sql = "SELECT * FROM assets WHERE user_id = ?";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> mapRow(rs), userId);
+        List<Asset> assets = jdbcTemplate.query(sql, (rs, rowNum) -> mapRow(rs), userId);
+
+        if (assets.isEmpty()) return assets;
+
+        // Map asset_id -> list of AssetValue
+        Map<Long, List<AssetValue>> valuesMap = new HashMap<>();
+        jdbcTemplate.query(SQL_SELECT_ASSET_VALUES_BY_USER, rs -> {
+            AssetValue av = mapAssetValue(rs);
+            valuesMap.computeIfAbsent(av.getAssetId(), k -> new ArrayList<>()).add(av);
+        }, userId);
+
+        for (Asset asset : assets) {
+            List<AssetValue> vals = valuesMap.getOrDefault(asset.getAssetId(), new ArrayList<>());
+            asset.setAssetValues(vals);
+        }
+
+        return assets;
     }
 
     @Override
@@ -64,7 +93,7 @@ public class AssetServiceUseCase implements AssetServicePort {
                 asset.getDescription(),
                 asset.getAcquisitionDate(),
                 asset.getAcquisitionValue(),
-                asset.getCurrentValue(),
+                asset.getOwnershipPercentage(),
                 userId,
                 assetId
         );
@@ -176,7 +205,16 @@ public class AssetServiceUseCase implements AssetServicePort {
         asset.setDescription(rs.getString("description"));
         asset.setAcquisitionDate(rs.getDate("acquisition_date") != null ? rs.getDate("acquisition_date").toLocalDate() : null);
         asset.setAcquisitionValue(rs.getDouble("acquisition_value"));
-        asset.setCurrentValue(rs.getDouble("current_value"));
+        asset.setOwnershipPercentage(rs.getDouble("ownership_percentage"));
         return asset;
+    }
+    private AssetValue mapAssetValue(java.sql.ResultSet rs) throws java.sql.SQLException {
+        AssetValue av = new AssetValue();
+        av.setAssetValueId(rs.getLong("value_id"));
+        av.setAssetId(rs.getLong("asset_id"));
+        java.sql.Date vd = rs.getDate("valuation_date");
+        av.setValuationDate(vd != null ? vd.toLocalDate() : null);
+        av.setCurrentValue(rs.getDouble("current_value"));
+        return av;
     }
 }

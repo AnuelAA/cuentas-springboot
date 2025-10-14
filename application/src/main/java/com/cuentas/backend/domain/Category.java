@@ -15,6 +15,7 @@ public class Category {
     private Long userId;
     private String name;
     private String description;
+    private Long parentCategoryId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -5,6 +5,10 @@
 -- ===============================
 -- 0. DROP TABLES
 -- ===============================
+DROP TABLE IF EXISTS interest_history;
+DROP TABLE IF EXISTS interests;
+DROP TABLE IF EXISTS liability_values;
+DROP TABLE IF EXISTS asset_values;
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS liabilities;
 DROP TABLE IF EXISTS assets;
@@ -38,16 +42,18 @@ CREATE TABLE user_settings (
 );
 
 -- ===============================
--- 2. Categorías y Tipologías
+-- 2. Tipologías (sin categorías)
 -- ===============================
 CREATE TABLE categories (
     category_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
+    parent_category_id INT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP,
-    CONSTRAINT fk_categories_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    CONSTRAINT fk_categories_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_categories_parent FOREIGN KEY (parent_category_id) REFERENCES categories(category_id) ON DELETE SET NULL
 );
 
 CREATE TABLE asset_types (
@@ -73,7 +79,7 @@ CREATE TABLE assets (
     description TEXT,
     acquisition_date DATE,
     acquisition_value DECIMAL(15,2),
-    current_value DECIMAL(15,2),
+    ownership_percentage DECIMAL(5,2) NOT NULL DEFAULT 100.00, -- Porcentaje de propiedad del activo
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP,
     CONSTRAINT fk_assets_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -87,10 +93,7 @@ CREATE TABLE liabilities (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     principal_amount DECIMAL(15,2),
-    interest_rate DECIMAL(15,5),
     start_date DATE,
-    end_date DATE,
-    outstanding_balance DECIMAL(15,2),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP,
     CONSTRAINT fk_liabilities_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -98,7 +101,53 @@ CREATE TABLE liabilities (
 );
 
 -- ===============================
--- 4. Transacciones
+-- 4. Valores de activos y pasivos
+-- ===============================
+CREATE TABLE asset_values (
+    value_id SERIAL PRIMARY KEY,
+    asset_id INT NOT NULL,
+    valuation_date DATE NOT NULL,
+    current_value DECIMAL(15,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_asset_values_asset FOREIGN KEY (asset_id) REFERENCES assets(asset_id) ON DELETE CASCADE
+);
+
+CREATE TABLE liability_values (
+    value_id SERIAL PRIMARY KEY,
+    liability_id INT NOT NULL,
+    valuation_date DATE NOT NULL,
+    end_date DATE,
+    outstanding_balance DECIMAL(15,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_liability_values_liability FOREIGN KEY (liability_id) REFERENCES liabilities(liability_id) ON DELETE CASCADE
+);
+
+-- ===============================
+-- 5. Intereses de pasivos
+-- ===============================
+CREATE TABLE interests (
+    interest_id SERIAL PRIMARY KEY,
+    liability_id INT NOT NULL,
+    type VARCHAR(20) CHECK (type IN ('fixed','variable','general')) DEFAULT 'fixed',
+    annual_rate DECIMAL(7,5) NULL,
+    start_date DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_interest_liability FOREIGN KEY (liability_id)
+        REFERENCES liabilities(liability_id) ON DELETE CASCADE
+);
+
+CREATE TABLE interest_history (
+    interest_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    annual_rate DECIMAL(7,5) NOT NULL,
+    PRIMARY KEY (interest_id, start_date, end_date),
+    CONSTRAINT fk_interest_history FOREIGN KEY (interest_id)
+        REFERENCES interests(interest_id) ON DELETE CASCADE
+);
+
+-- ===============================
+-- 6. Transacciones
 -- ===============================
 CREATE TABLE transactions (
     transaction_id SERIAL PRIMARY KEY,
@@ -116,13 +165,13 @@ CREATE TABLE transactions (
     CONSTRAINT fk_transactions_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_transactions_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
     CONSTRAINT fk_transactions_asset FOREIGN KEY (asset_id) REFERENCES assets(asset_id) ON DELETE SET NULL,
+    CONSTRAINT fk_transactions_related_asset FOREIGN KEY (related_asset_id) REFERENCES assets(asset_id) ON DELETE SET NULL,
     CONSTRAINT fk_transactions_liability FOREIGN KEY (liability_id) REFERENCES liabilities(liability_id) ON DELETE SET NULL
 );
 
 -- ===============================
--- 5. Inserts iniciales de definición
+-- 7. Inserts iniciales de definición
 -- ===============================
-
 INSERT INTO asset_types (name, description) VALUES
 ('Inmueble','Inmueble'),
 ('Fondo de inversión','Fondo de inversión'),

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
@@ -16,16 +17,17 @@ public class Asset {
     private Long assetTypeId;
     private String name;
     private String description;
+    private Double ownershipPercentage;
     private LocalDate acquisitionDate;
     private Double acquisitionValue;
-    private Double currentValue;
+    List<AssetValue> assetValues;
 
-    public Asset(String name, Long userId,Long assetTypeId, LocalDate acquisitionDate, Double acquisitionValue, Double currentValue){
+    public Asset(String name, Long userId,Long assetTypeId, LocalDate acquisitionDate, Double acquisitionValue){
         this.name = name;
         this.userId = userId;
         this.assetTypeId = assetTypeId;
         this.acquisitionDate = acquisitionDate;
         this.acquisitionValue = acquisitionValue;
-        this.currentValue = currentValue;
+
     }
 }

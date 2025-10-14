@@ -110,6 +110,7 @@ public class TransactionServiceUseCase implements TransactionServicePort {
         t.setAmount(rs.getDouble("amount"));
         t.setTransactionDate(rs.getDate("transaction_date") != null ? rs.getDate("transaction_date").toLocalDate() : null);
         t.setDescription(rs.getString("description"));
+        t.setType(rs.getString("transaction_type"));
         t.setCreatedAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null);
         t.setUpdatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null);
         return t;

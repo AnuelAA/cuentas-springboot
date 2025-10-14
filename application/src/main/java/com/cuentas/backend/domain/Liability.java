@@ -4,10 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,22 +19,17 @@ public class Liability {
     private String name;
     private String description;
     private Double principalAmount;
-    private BigDecimal interestRate;
+    private Long interestId;
     private LocalDate startDate;
-    private LocalDate endDate;
-    private Double outstandingBalance;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<LiabilityValue> liabilityValues;
 
-    public Liability(String name, Long userId, Long liabilityTypeId, Double principalAmount, BigDecimal interestRate,
-                     LocalDate startDate, LocalDate endDate, Double outstandingBalance){
+    public Liability(String name, Long userId, Long liabilityTypeId, Double principalAmount, LocalDate startDate){
         this.name = name;
         this.userId = userId;
         this.liabilityTypeId = liabilityTypeId;
         this.principalAmount = principalAmount;
-        this.interestRate = interestRate;
         this.startDate = startDate;
-        this.endDate = endDate;
-        this.outstandingBalance = outstandingBalance;
     }
 }
