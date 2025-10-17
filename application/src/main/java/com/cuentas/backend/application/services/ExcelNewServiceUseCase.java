@@ -739,9 +739,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         //Beneficio (fila 3 => índice 2)
         header = sheet.getRow(2);
         createCellWithFormat(workbook, header.createCell(1), "Beneficio", IndexedColors.YELLOW, false);
-        //createCellWithFormat(workbook, header.createCell(2), getCellString(sheet, 3, 22), IndexedColors.LIGHT_YELLOW, false);
-
-        //Ingreso Neto (fila 4 => índice 3)
+        String beneficioFormula = "=" + sumaRango("J3","J52").substring(1) + "-" + sumaRango("P3","P52").substring(1);
+        createCellWithFormat(workbook, header.createCell(2), beneficioFormula, IndexedColors.LIGHT_YELLOW, false);        //Ingreso Neto (fila 4 => índice 3)
         header = sheet.getRow(3);
         createCellWithFormat(workbook, header.createCell(1), "Ingreso Neto", IndexedColors.YELLOW, false);
         createCellWithFormat(workbook, header.createCell(2), sumaRango("J3","J52"), IndexedColors.LIGHT_YELLOW, false);

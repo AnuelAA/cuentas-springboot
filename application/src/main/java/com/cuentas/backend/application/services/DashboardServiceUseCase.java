@@ -133,16 +133,25 @@ public class DashboardServiceUseCase implements DashboardServicePort {
         LiabilityProgress progress = new LiabilityProgress();
         progress.setLiabilityId(liabilityId);
 
-        String sql = "SELECT principal_amount, outstanding_balance FROM liabilities WHERE user_id=? AND liability_id=?";
-        jdbcTemplate.query(sql, rs -> {
+        // Obtener principal desde la tabla liabilities
+        String sqlPrincipal = "SELECT principal_amount FROM liabilities WHERE user_id=? AND liability_id=?";
+        BigDecimal principal = jdbcTemplate.queryForObject(sqlPrincipal, BigDecimal.class, userId, liabilityId);
+
+        // Obtener el último outstanding_balance desde liability_values (última valoración)
+        String sqlOutstanding = "SELECT outstanding_balance FROM liability_values WHERE liability_id=? ORDER BY valuation_date DESC LIMIT 1";
+        BigDecimal outstanding = jdbcTemplate.query(sqlOutstanding, rs -> {
             if (rs.next()) {
-                BigDecimal principal = rs.getBigDecimal("principal_amount");
-                BigDecimal remaining = rs.getBigDecimal("outstanding_balance");
-                BigDecimal paid = principal.subtract(remaining);
-                progress.setPrincipalPaid(paid);
-                progress.setRemainingBalance(remaining);
+                return rs.getBigDecimal("outstanding_balance");
             }
-        }, userId, liabilityId);
+            return null;
+        }, liabilityId);
+
+        // Seguridad ante nulos
+        BigDecimal remaining = outstanding != null ? outstanding : BigDecimal.ZERO;
+        BigDecimal paid = (principal != null) ? principal.subtract(remaining) : BigDecimal.ZERO;
+
+        progress.setPrincipalPaid(paid);
+        progress.setRemainingBalance(remaining);
 
         return progress;
     }
