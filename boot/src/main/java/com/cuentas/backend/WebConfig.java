@@ -18,7 +18,7 @@ public class WebConfig {
                                 "https://front-cuentas.onrender.com",
                                 "http://localhost:*",
                                 "http://127.0.0.1:*",
-                                "http://46.101.144.147:3000"
+                                "http://46.101.144.147:*"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
