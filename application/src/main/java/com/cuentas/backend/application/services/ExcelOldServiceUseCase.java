@@ -86,7 +86,7 @@ public class ExcelOldServiceUseCase implements ExcelServicePort {
                 List<List<Object>> investedMatrix = readMatrix(sheet, "P", "Q", 5, formatter, evaluator);
                 List<List<Object>> investmentsMatrix = readMatrix4Cols(sheet, "T", "U", "V", "W", 5, formatter, evaluator);
 
-                log.debug("Matrices leídas - Ingresos: {}, Gastos: {}, Liquidez: {}, Pasivos: {}, Activos: {}",
+                log.info("Matrices leídas - Ingresos: {}, Gastos: {}, Liquidez: {}, Pasivos: {}, Activos: {}",
                         incomeMatrix.size(), expenseMatrix.size(), liquidMatrix.size(),
                         investedMatrix.size(), investmentsMatrix.size());
 
@@ -186,7 +186,7 @@ public class ExcelOldServiceUseCase implements ExcelServicePort {
                     ps.setString(3, type);
                 });
                 row.set(0, categoryId);
-                log.debug("Insertada nueva categoría [{}] para usuario {} con id={}", category, userId, categoryId);
+                log.info("Insertada nueva categoría [{}] para usuario {} con id={}", category, userId, categoryId);
             }
         }
     }
@@ -312,11 +312,6 @@ public class ExcelOldServiceUseCase implements ExcelServicePort {
     // =======================
     // Utilidades
     // =======================
-    private double parseDoubleSafe(String val) {
-        if (val == null || val.isBlank()) return 0;
-        val = val.replace(",", ".");
-        try { return Double.parseDouble(val); } catch (NumberFormatException e) { return 0; }
-    }
 
     private int getMonthNumber(String monthName) {
         return switch (monthName) {

@@ -48,7 +48,7 @@ public class UserServiceUseCase implements UserServicePort {
     @Override
     @Transactional
     public User createUser(User user) {
-        log.debug("Creando usuario: {}", user.getEmail());
+        log.info("Creando usuario: {}", user.getEmail());
         Long id = jdbcTemplate.queryForObject(SQL_INSERT_USER, Long.class,
                 user.getName(), user.getEmail(), user.getPassword());
         user.setUserId(id);
@@ -75,7 +75,7 @@ public class UserServiceUseCase implements UserServicePort {
     @Override
     @Transactional
     public User updateUser(Long userId, User user) {
-        log.debug("Actualizando usuario id={}", userId);
+        log.info("Actualizando usuario id={}", userId);
         jdbcTemplate.update(SQL_UPDATE_USER,
                 user.getName(), user.getEmail(), user.getPassword(), userId);
         return getUserById(userId);
@@ -84,7 +84,7 @@ public class UserServiceUseCase implements UserServicePort {
     @Override
     @Transactional
     public boolean deleteUser(Long userId) {
-        log.debug("Borrando usuario id={}", userId);
+        log.info("Borrando usuario id={}", userId);
         int rows = jdbcTemplate.update(SQL_DELETE_USER, userId);
         boolean deleted = rows > 0;
         log.info("Usuario id={} borrado: {}", userId, deleted);
@@ -107,7 +107,7 @@ public class UserServiceUseCase implements UserServicePort {
     @Override
     @Transactional
     public UserSettings updateUserSettings(Long userId, UserSettings settings) {
-        log.debug("Actualizando settings para usuario id={}", userId);
+        log.info("Actualizando settings para usuario id={}", userId);
         jdbcTemplate.update(SQL_UPDATE_SETTINGS,
                 settings.getDarkMode(),
                 settings.getLanguage(),

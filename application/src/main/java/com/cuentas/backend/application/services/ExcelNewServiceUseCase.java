@@ -165,7 +165,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 List<Transaction> incomeTransactionList = saveIncome(sheet, userId, "F", "G", "H", "I", "J", defaultDate);
                 List<Transaction> expenseTransactionList = saveExpense(sheet, userId, "L", "M", "N", "O", "P", defaultDate);
 
-                log.debug("Filas leídas - Ingresos: {}, Gastos: {}, Activos: {}, Pasivos: {}",
+                log.info("Filas leídas - Ingresos: {}, Gastos: {}, Activos: {}, Pasivos: {}",
                         incomeTransactionList.size(), expenseTransactionList.size(), assetCount, liabilityCount);
             }
 
