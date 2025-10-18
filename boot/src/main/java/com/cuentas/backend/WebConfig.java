@@ -14,10 +14,12 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins(
-                                "http://46.101.144.147:3000",   // 👈 frontend en tu droplet
-                                "http://localhost:3000",        // 👈 pruebas locales
-                                "https://front-cuentas.onrender.com" // 👈 por si usas el viejo Render
+                        .allowedOriginPatterns(
+                                "https://front-cuentas.onrender.com",
+                                "http://localhost:*",
+                                "http://127.0.0.1:*",
+                                "http://46.101.144.147:*",
+                                "http://46.101.144.147:3000"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
