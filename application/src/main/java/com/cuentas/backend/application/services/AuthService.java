@@ -39,11 +39,32 @@ public class AuthService {
             throw new RuntimeException("Credenciales inválidas");
         }
 
+        String inputPassword = loginRequest.getPassword();
+        
+        // Log para diagnóstico (sin exponer las contraseñas completas)
+        log.info("Comparando contraseña - Input length: {}, Stored hash: {}", 
+                inputPassword != null ? inputPassword.length() : 0,
+                storedPassword != null && storedPassword.length() > 30 ? storedPassword.substring(0, 30) + "..." : storedPassword);
+        log.info("Tipo PasswordEncoder: {}, Hash stored starts with: {}", 
+                passwordEncoder.getClass().getSimpleName(),
+                storedPassword != null && storedPassword.length() > 4 ? storedPassword.substring(0, 4) : "null");
+        
         // Verificar contraseña (siempre en BCrypt)
-        boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), storedPassword);
+        boolean passwordMatches = passwordEncoder.matches(inputPassword, storedPassword);
+        
+        log.info("Resultado comparación para email={}: {}", loginRequest.getEmail(), passwordMatches);
+        
+        // Si falla, intentar verificar si es un problema con el encoder
+        if (!passwordMatches) {
+            log.warn("Intento de re-cifrado para diagnóstico - Input password length: {}", inputPassword != null ? inputPassword.length() : 0);
+            String testHash = passwordEncoder.encode(inputPassword);
+            log.warn("Hash generado con mismo encoder empieza con: {}", testHash.length() > 30 ? testHash.substring(0, 30) + "..." : testHash);
+        }
         
         if (!passwordMatches) {
-            log.warn("Contraseña incorrecta para email={}", loginRequest.getEmail());
+            log.warn("Contraseña incorrecta para email={} - Hash almacenado empieza con: {}", 
+                    loginRequest.getEmail(), 
+                    storedPassword.length() > 20 ? storedPassword.substring(0, 20) + "..." : storedPassword);
             throw new RuntimeException("Credenciales inválidas");
         }
 
