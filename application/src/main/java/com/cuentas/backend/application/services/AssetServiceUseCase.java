@@ -4,6 +4,8 @@ import com.cuentas.backend.application.ports.driving.AssetServicePort;
 import com.cuentas.backend.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataAccessException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -104,6 +106,64 @@ public class AssetServiceUseCase implements AssetServicePort {
     public void deleteAsset(Long userId, Long assetId) {
         String sql = "DELETE FROM assets WHERE user_id = ? AND asset_id = ?";
         jdbcTemplate.update(sql, userId, assetId);
+    }
+
+    @Override
+    @Transactional
+    public AssetValue upsertAssetValue(Long userId, Long assetId, LocalDate valuationDate, Double currentValue, Double acquisitionValue) {
+        // Validar que el asset existe y pertenece al usuario (sin cargar valores para evitar overhead)
+        String checkSql = "SELECT asset_id FROM assets WHERE user_id = ? AND asset_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkSql, Long.class, userId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Asset no encontrado o no pertenece al usuario");
+        }
+
+        // Validar que currentValue es positivo
+        if (currentValue == null || currentValue <= 0) {
+            throw new IllegalArgumentException("currentValue debe ser mayor a 0");
+        }
+
+        // Validar que acquisitionValue es no negativo si se proporciona
+        if (acquisitionValue != null && acquisitionValue < 0) {
+            throw new IllegalArgumentException("acquisitionValue debe ser mayor o igual a 0");
+        }
+
+        // Buscar si ya existe una valoración para esta fecha
+        String selectSql = "SELECT value_id FROM asset_values WHERE asset_id = ? AND valuation_date = ?";
+        Long existingValueId = null;
+        try {
+            existingValueId = jdbcTemplate.queryForObject(selectSql, Long.class, assetId, valuationDate);
+        } catch (Exception e) {
+            // No existe, continuar para crear
+        }
+
+        if (existingValueId != null) {
+            // Actualizar existente
+            // Nota: acquisitionValue no está en la tabla según el schema, pero lo dejamos preparado
+            String updateSql = "UPDATE asset_values SET current_value = ? WHERE value_id = ?";
+            jdbcTemplate.update(updateSql, currentValue, existingValueId);
+            
+            AssetValue updated = new AssetValue();
+            updated.setAssetValueId(existingValueId);
+            updated.setAssetId(assetId);
+            updated.setValuationDate(valuationDate);
+            updated.setCurrentValue(currentValue);
+            updated.setAcquisitionValue(acquisitionValue); // Guardado en memoria aunque no en BD
+            return updated;
+        } else {
+            // Insertar nuevo
+            String insertSql = "INSERT INTO asset_values (asset_id, valuation_date, current_value) VALUES (?, ?, ?) RETURNING value_id";
+            Long valueId = jdbcTemplate.queryForObject(insertSql, Long.class, assetId, valuationDate, currentValue);
+            
+            AssetValue created = new AssetValue();
+            created.setAssetValueId(valueId);
+            created.setAssetId(assetId);
+            created.setValuationDate(valuationDate);
+            created.setCurrentValue(currentValue);
+            created.setAcquisitionValue(acquisitionValue); // Guardado en memoria aunque no en BD
+            return created;
+        }
     }
 
     // ===============================

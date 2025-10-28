@@ -2,6 +2,8 @@ package com.cuentas.backend.adapters;
 
 import com.cuentas.backend.application.ports.driving.LiabilityServicePort;
 import com.cuentas.backend.domain.Liability;
+import com.cuentas.backend.domain.LiabilityValue;
+import com.cuentas.backend.domain.CreateLiabilityValueRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -60,5 +62,30 @@ public class LiabilitiesControllerAdapter {
         liabilityService.deleteLiability(userId, liabilityId);
         logger.info("Respuesta deleteLiability: No Content");
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{liabilityId}/values")
+    public ResponseEntity<LiabilityValue> createLiabilityValue(
+            @PathVariable Long userId,
+            @PathVariable Long liabilityId,
+            @RequestBody CreateLiabilityValueRequest request) {
+        logger.info("Creando/actualizando snapshot para userId={}, liabilityId={}, fecha={}", userId, liabilityId, request.getValuationDate());
+        try {
+            LiabilityValue liabilityValue = liabilityService.upsertLiabilityValue(
+                    userId,
+                    liabilityId,
+                    request.getValuationDate(),
+                    request.getOutstandingBalance(),
+                    request.getEndDate()
+            );
+            logger.info("Snapshot creado/actualizado: {}", liabilityValue);
+            return ResponseEntity.ok(liabilityValue);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error de validación: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al crear/actualizar snapshot: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
     }
 }

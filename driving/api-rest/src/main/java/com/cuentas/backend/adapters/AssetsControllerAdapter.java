@@ -1,6 +1,8 @@
 package com.cuentas.backend.adapters;
 
 import com.cuentas.backend.domain.Asset;
+import com.cuentas.backend.domain.AssetValue;
+import com.cuentas.backend.domain.CreateAssetValueRequest;
 import com.cuentas.backend.application.ports.driving.AssetServicePort;
 import com.cuentas.backend.domain.AssetROI;
 import com.cuentas.backend.domain.MonthlyROI;
@@ -87,5 +89,30 @@ public class AssetsControllerAdapter {
         List<MonthlyROI> monthlyRoi = assetService.calculateMonthlyROI(userId, assetId, year);
         logger.info("Respuesta getMonthlyRoi: {}", monthlyRoi);
         return ResponseEntity.ok(monthlyRoi);
+    }
+
+    @PostMapping("/{assetId}/valuations")
+    public ResponseEntity<AssetValue> createAssetValuation(
+            @PathVariable Long userId,
+            @PathVariable Long assetId,
+            @RequestBody CreateAssetValueRequest request) {
+        logger.info("Creando/actualizando valoración para userId={}, assetId={}, fecha={}", userId, assetId, request.getValuationDate());
+        try {
+            AssetValue assetValue = assetService.upsertAssetValue(
+                    userId,
+                    assetId,
+                    request.getValuationDate(),
+                    request.getCurrentValue(),
+                    request.getAcquisitionValue()
+            );
+            logger.info("Valoración creada/actualizada: {}", assetValue);
+            return ResponseEntity.ok(assetValue);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error de validación: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al crear/actualizar valoración: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
     }
 }

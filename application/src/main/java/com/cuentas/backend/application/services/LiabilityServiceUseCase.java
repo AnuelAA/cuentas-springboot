@@ -5,8 +5,11 @@ import com.cuentas.backend.domain.Liability;
 import com.cuentas.backend.domain.LiabilityValue;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataAccessException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -103,6 +106,63 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
     public void deleteLiability(Long userId, Long liabilityId) {
         String sql = "DELETE FROM liabilities WHERE user_id = ? AND liability_id = ?";
         jdbcTemplate.update(sql, userId, liabilityId);
+    }
+
+    @Override
+    @Transactional
+    public LiabilityValue upsertLiabilityValue(Long userId, Long liabilityId, LocalDate valuationDate, Double outstandingBalance, LocalDate endDate) {
+        // Validar que el liability existe y pertenece al usuario (sin cargar valores para evitar overhead)
+        String checkSql = "SELECT liability_id FROM liabilities WHERE user_id = ? AND liability_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkSql, Long.class, userId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Liability no encontrado o no pertenece al usuario");
+        }
+
+        // Validar que outstandingBalance es no negativo
+        if (outstandingBalance == null || outstandingBalance < 0) {
+            throw new IllegalArgumentException("outstandingBalance debe ser mayor o igual a 0");
+        }
+
+        // Validar que endDate es posterior o igual a valuationDate si se proporciona
+        if (endDate != null && endDate.isBefore(valuationDate)) {
+            throw new IllegalArgumentException("endDate debe ser posterior o igual a valuationDate");
+        }
+
+        // Buscar si ya existe un snapshot para esta fecha
+        String selectSql = "SELECT value_id FROM liability_values WHERE liability_id = ? AND valuation_date = ?";
+        Long existingValueId = null;
+        try {
+            existingValueId = jdbcTemplate.queryForObject(selectSql, Long.class, liabilityId, valuationDate);
+        } catch (Exception e) {
+            // No existe, continuar para crear
+        }
+
+        if (existingValueId != null) {
+            // Actualizar existente
+            String updateSql = "UPDATE liability_values SET outstanding_balance = ?, end_date = ? WHERE value_id = ?";
+            jdbcTemplate.update(updateSql, outstandingBalance, endDate, existingValueId);
+            
+            LiabilityValue updated = new LiabilityValue();
+            updated.setLiabilityValueId(existingValueId);
+            updated.setLiabilityId(liabilityId);
+            updated.setValuationDate(valuationDate);
+            updated.setOutstandingBalance(outstandingBalance);
+            updated.setEndDate(endDate);
+            return updated;
+        } else {
+            // Insertar nuevo
+            String insertSql = "INSERT INTO liability_values (liability_id, valuation_date, end_date, outstanding_balance) VALUES (?, ?, ?, ?) RETURNING value_id";
+            Long valueId = jdbcTemplate.queryForObject(insertSql, Long.class, liabilityId, valuationDate, endDate, outstandingBalance);
+            
+            LiabilityValue created = new LiabilityValue();
+            created.setLiabilityValueId(valueId);
+            created.setLiabilityId(liabilityId);
+            created.setValuationDate(valuationDate);
+            created.setOutstandingBalance(outstandingBalance);
+            created.setEndDate(endDate);
+            return created;
+        }
     }
 
     private Liability mapRow(ResultSet rs) throws SQLException {

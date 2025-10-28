@@ -15,4 +15,5 @@ public class AssetValue {
     private Long assetId;
     private LocalDate valuationDate;
     private Double currentValue;
+    private Double acquisitionValue; // Opcional: valor de adquisición para esta valoración
 }
