@@ -34,8 +34,33 @@ public class AuthService {
             throw new RuntimeException("Credenciales inválidas");
         }
 
-        // Verificar contraseña
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+        String storedPassword = user.getPassword();
+        boolean passwordMatches = false;
+
+        if (storedPassword == null) {
+            log.warn("Contraseña nula para email={}", loginRequest.getEmail());
+            throw new RuntimeException("Credenciales inválidas");
+        }
+
+        // Verificar si la contraseña está encriptada con BCrypt
+        if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
+            // Contraseña en BCrypt, usar matches normal
+            passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), storedPassword);
+        } else {
+            // Contraseña antigua en texto plano, comparar directamente
+            log.info("Contraseña antigua detectada para email={}, migrando a BCrypt", loginRequest.getEmail());
+            passwordMatches = storedPassword.equals(loginRequest.getPassword());
+            
+            // Si coincide, migrar a BCrypt
+            if (passwordMatches) {
+                String encodedPassword = passwordEncoder.encode(loginRequest.getPassword());
+                user.setPassword(encodedPassword);
+                userService.updateUser(user.getUserId(), user);
+                log.info("Contraseña migrada a BCrypt para userId={}", user.getUserId());
+            }
+        }
+
+        if (!passwordMatches) {
             log.warn("Contraseña incorrecta para email={}", loginRequest.getEmail());
             throw new RuntimeException("Credenciales inválidas");
         }
