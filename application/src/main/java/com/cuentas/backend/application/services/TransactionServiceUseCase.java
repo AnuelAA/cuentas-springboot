@@ -21,7 +21,7 @@ public class TransactionServiceUseCase implements TransactionServicePort {
 
     @Override
     public Transaction createTransaction(Long userId, Transaction transaction) {
-        String sql = "INSERT INTO transactions (user_id, category_id, asset_id, liability_id, amount, transaction_date, description) " +
+        String sql = "INSERT INTO transactions (user_id, category_id, asset_id, liability_id, amount, transaction_date, description, transaction_type) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id";
         Long id = jdbcTemplate.queryForObject(sql, Long.class,
                 userId,
@@ -30,7 +30,8 @@ public class TransactionServiceUseCase implements TransactionServicePort {
                 transaction.getLiabilityId(),
                 transaction.getAmount(),
                 transaction.getTransactionDate(),
-                transaction.getDescription()
+                transaction.getDescription(),
+                transaction.getType()
         );
         transaction.setTransactionId(id);
         transaction.setUserId(userId);

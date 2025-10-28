@@ -14,12 +14,11 @@ public class WebConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOriginPatterns(
-                                "https://front-cuentas.onrender.com",
                                 "http://localhost:*",
                                 "http://127.0.0.1:*",
                                 "http://46.101.144.147:*",
                                 "http://46.101.144.147:3000",
-                                "https://cuentas.pages.dev"
+                                "https://cuentas.pages.dev:*"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
