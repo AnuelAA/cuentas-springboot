@@ -21,17 +21,18 @@ public class TransactionServiceUseCase implements TransactionServicePort {
 
     @Override
     public Transaction createTransaction(Long userId, Transaction transaction) {
-        String sql = "INSERT INTO transactions (user_id, category_id, asset_id, liability_id, amount, transaction_date, description, transaction_type) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id";
+        String sql = "INSERT INTO transactions (user_id, category_id, asset_id, related_asset_id, liability_id, transaction_type, amount, transaction_date, description) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id";
         Long id = jdbcTemplate.queryForObject(sql, Long.class,
                 userId,
                 transaction.getCategoryId(),
                 transaction.getAssetId(),
+                transaction.getRelatedAssetId(),
                 transaction.getLiabilityId(),
+                transaction.getType(),
                 transaction.getAmount(),
                 transaction.getTransactionDate(),
-                transaction.getDescription(),
-                transaction.getType()
+                transaction.getDescription()
         );
         transaction.setTransactionId(id);
         transaction.setUserId(userId);
@@ -79,12 +80,14 @@ public class TransactionServiceUseCase implements TransactionServicePort {
 
     @Override
     public Transaction updateTransaction(Long userId, Long transactionId, Transaction transaction) {
-        String sql = "UPDATE transactions SET category_id = ?, asset_id = ?, liability_id = ?, amount = ?, transaction_date = ?, description = ?, updated_at = NOW() " +
+        String sql = "UPDATE transactions SET category_id = ?, asset_id = ?, related_asset_id = ?, liability_id = ?, transaction_type = ?, amount = ?, transaction_date = ?, description = ?, updated_at = NOW() " +
                 "WHERE user_id = ? AND transaction_id = ?";
         jdbcTemplate.update(sql,
                 transaction.getCategoryId(),
                 transaction.getAssetId(),
+                transaction.getRelatedAssetId(),
                 transaction.getLiabilityId(),
+                transaction.getType(),
                 transaction.getAmount(),
                 transaction.getTransactionDate(),
                 transaction.getDescription(),
