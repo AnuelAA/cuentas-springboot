@@ -54,6 +54,10 @@ public class UserServiceUseCase implements UserServicePort {
     @Transactional
     public User createUser(User user) {
         log.info("Creando usuario: {}", user.getEmail());
+        // Verificar que la contraseña no esté vacía
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new IllegalArgumentException("La contraseña no puede estar vacía");
+        }
         // Encriptar la contraseña antes de guardarla
         String encodedPassword = passwordEncoder.encode(user.getPassword());
         Long id = jdbcTemplate.queryForObject(SQL_INSERT_USER, Long.class,
@@ -69,7 +73,11 @@ public class UserServiceUseCase implements UserServicePort {
     @Override
     public User getUserById(Long userId) {
         try {
-            return jdbcTemplate.queryForObject(SQL_SELECT_USER, new UserRowMapper(), userId);
+            User user = jdbcTemplate.queryForObject(SQL_SELECT_USER, new UserRowMapper(), userId);
+            if (user != null) {
+                user.setPassword(null); // No exponer contraseña
+            }
+            return user;
         } catch (DataAccessException e) {
             log.warn("Usuario no encontrado con id={}", userId);
             return null;
@@ -79,6 +87,7 @@ public class UserServiceUseCase implements UserServicePort {
     @Override
     public User getUserByEmail(String email) {
         try {
+            // Este método se usa para autenticación, mantener la contraseña para verificación
             return jdbcTemplate.queryForObject(SQL_SELECT_USER_BY_EMAIL, new UserRowMapper(), email);
         } catch (DataAccessException e) {
             log.warn("Usuario no encontrado con email={}", email);
@@ -88,31 +97,39 @@ public class UserServiceUseCase implements UserServicePort {
 
     @Override
     public List<User> getAllUsers() {
-        return jdbcTemplate.query(SQL_SELECT_ALL_USERS, new UserRowMapper());
+        List<User> users = jdbcTemplate.query(SQL_SELECT_ALL_USERS, new UserRowMapper());
+        // No exponer contraseñas en la lista
+        users.forEach(user -> user.setPassword(null));
+        return users;
     }
 
     @Override
     @Transactional
     public User updateUser(Long userId, User user) {
         log.info("Actualizando usuario id={}", userId);
-        // Si se proporciona una nueva contraseña, encriptarla
         String passwordToUpdate = user.getPassword();
         if (passwordToUpdate != null && !passwordToUpdate.isEmpty()) {
-            passwordToUpdate = passwordEncoder.encode(passwordToUpdate);
+            // Verificar si ya está cifrada con BCrypt antes de cifrar de nuevo
+            if (!passwordToUpdate.startsWith("$2a$") && !passwordToUpdate.startsWith("$2b$")) {
+                // No está cifrada, cifrarla
+                passwordToUpdate = passwordEncoder.encode(passwordToUpdate);
+            }
+            // Si ya está cifrada, usar directamente (para migraciones internas)
         } else {
-            // Si no se proporciona contraseña, mantener la actual
-            User existingUser = getUserById(userId);
-            if (existingUser != null) {
-                passwordToUpdate = existingUser.getPassword();
+            // Si no se proporciona contraseña, mantener la actual (consultar directamente de BD)
+            try {
+                User existingUser = jdbcTemplate.queryForObject(SQL_SELECT_USER, new UserRowMapper(), userId);
+                if (existingUser != null) {
+                    passwordToUpdate = existingUser.getPassword();
+                }
+            } catch (DataAccessException e) {
+                log.warn("Usuario no encontrado para actualizar id={}", userId);
+                return null;
             }
         }
         jdbcTemplate.update(SQL_UPDATE_USER,
                 user.getName(), user.getEmail(), passwordToUpdate, userId);
-        User updatedUser = getUserById(userId);
-        if (updatedUser != null) {
-            updatedUser.setPassword(null); // No devolver la contraseña
-        }
-        return updatedUser;
+        return getUserById(userId);
     }
 
     @Override
