@@ -1,8 +1,16 @@
 HELP.md
-target/
 .mvn/wrapper/maven-wrapper.jar
+
+# Ignorar todos los target/
+target/
+# Excepciones para target (deben estar después de target/)
 !**/src/main/**/target/
 !**/src/test/**/target/
+# Permitir el JAR final del boot (aplicación ejecutable)
+# Necesitamos primero "des-ignorar" el directorio, luego ignorar todo, luego permitir .jar
+!boot/target/
+boot/target/*
+!boot/target/*.jar
 
 ### STS ###
 .apt_generated
