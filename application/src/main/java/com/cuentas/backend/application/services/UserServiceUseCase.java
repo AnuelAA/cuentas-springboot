@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.DataAccessException;
@@ -21,11 +22,19 @@ public class UserServiceUseCase implements UserServicePort {
     private static final Logger log = LoggerFactory.getLogger(UserServiceUseCase.class);
 
     private final JdbcTemplate jdbcTemplate;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserServiceUseCase(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     private static final String SQL_INSERT_USER =
             "INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, NOW()) RETURNING user_id";
     private static final String SQL_SELECT_USER =
             "SELECT * FROM users WHERE user_id = ?";
+    private static final String SQL_SELECT_USER_BY_EMAIL =
+            "SELECT * FROM users WHERE email = ?";
     private static final String SQL_SELECT_ALL_USERS =
             "SELECT * FROM users";
     private static final String SQL_UPDATE_USER =
@@ -38,10 +47,6 @@ public class UserServiceUseCase implements UserServicePort {
     private static final String SQL_UPDATE_SETTINGS =
             "UPDATE user_settings SET dark_mode = ?, language = ?, notifications_email = ?, updated_at = NOW() WHERE user_id = ?";
 
-    public UserServiceUseCase(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
     // =======================
     // CRUD Users
     // =======================
@@ -49,10 +54,14 @@ public class UserServiceUseCase implements UserServicePort {
     @Transactional
     public User createUser(User user) {
         log.info("Creando usuario: {}", user.getEmail());
+        // Encriptar la contraseña antes de guardarla
+        String encodedPassword = passwordEncoder.encode(user.getPassword());
         Long id = jdbcTemplate.queryForObject(SQL_INSERT_USER, Long.class,
-                user.getName(), user.getEmail(), user.getPassword());
+                user.getName(), user.getEmail(), encodedPassword);
         user.setUserId(id);
         user.setCreatedAt(LocalDateTime.now());
+        // No devolver la contraseña encriptada en el objeto User devuelto
+        user.setPassword(null);
         log.info("Usuario creado con id={}", id);
         return user;
     }
@@ -68,6 +77,16 @@ public class UserServiceUseCase implements UserServicePort {
     }
 
     @Override
+    public User getUserByEmail(String email) {
+        try {
+            return jdbcTemplate.queryForObject(SQL_SELECT_USER_BY_EMAIL, new UserRowMapper(), email);
+        } catch (DataAccessException e) {
+            log.warn("Usuario no encontrado con email={}", email);
+            return null;
+        }
+    }
+
+    @Override
     public List<User> getAllUsers() {
         return jdbcTemplate.query(SQL_SELECT_ALL_USERS, new UserRowMapper());
     }
@@ -76,9 +95,24 @@ public class UserServiceUseCase implements UserServicePort {
     @Transactional
     public User updateUser(Long userId, User user) {
         log.info("Actualizando usuario id={}", userId);
+        // Si se proporciona una nueva contraseña, encriptarla
+        String passwordToUpdate = user.getPassword();
+        if (passwordToUpdate != null && !passwordToUpdate.isEmpty()) {
+            passwordToUpdate = passwordEncoder.encode(passwordToUpdate);
+        } else {
+            // Si no se proporciona contraseña, mantener la actual
+            User existingUser = getUserById(userId);
+            if (existingUser != null) {
+                passwordToUpdate = existingUser.getPassword();
+            }
+        }
         jdbcTemplate.update(SQL_UPDATE_USER,
-                user.getName(), user.getEmail(), user.getPassword(), userId);
-        return getUserById(userId);
+                user.getName(), user.getEmail(), passwordToUpdate, userId);
+        User updatedUser = getUserById(userId);
+        if (updatedUser != null) {
+            updatedUser.setPassword(null); // No devolver la contraseña
+        }
+        return updatedUser;
     }
 
     @Override
@@ -126,6 +160,8 @@ public class UserServiceUseCase implements UserServicePort {
             u.setUserId(rs.getLong("user_id"));
             u.setName(rs.getString("name"));
             u.setEmail(rs.getString("email"));
+            // Mantener el password_hash para uso interno (autenticación)
+            // Se puede limpiar en métodos públicos si es necesario
             u.setPassword(rs.getString("password_hash"));
             u.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
             var updated = rs.getTimestamp("updated_at");

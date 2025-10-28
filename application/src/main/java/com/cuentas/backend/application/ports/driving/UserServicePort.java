@@ -8,6 +8,7 @@ public interface UserServicePort {
     // CRUD Usuarios
     User createUser(User user);
     User getUserById(Long userId);
+    User getUserByEmail(String email);
     List<User> getAllUsers();
     User updateUser(Long userId, User user);
     boolean deleteUser(Long userId);
