@@ -45,11 +45,15 @@ public class AuthService {
         // Verificar si la contraseña está encriptada con BCrypt
         if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$")) {
             // Contraseña en BCrypt, usar matches normal
+            log.debug("Comparando contraseña BCrypt para email={}", loginRequest.getEmail());
             passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), storedPassword);
+            log.debug("Resultado comparación BCrypt: {}", passwordMatches);
         } else {
             // Contraseña antigua en texto plano, comparar directamente
-            log.info("Contraseña antigua detectada para email={}, migrando a BCrypt", loginRequest.getEmail());
+            log.info("Contraseña antigua detectada para email={} (formato: {}), migrando a BCrypt", 
+                    loginRequest.getEmail(), storedPassword.length() > 20 ? "hash posible" : "texto plano");
             passwordMatches = storedPassword.equals(loginRequest.getPassword());
+            log.debug("Resultado comparación texto plano: {}", passwordMatches);
             
             // Si coincide, migrar a BCrypt
             if (passwordMatches) {

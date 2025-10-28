@@ -60,6 +60,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Permitir endpoints públicos
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/users").permitAll() // Permitir registro (POST /api/users)
                 .requestMatchers("/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()

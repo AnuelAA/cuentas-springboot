@@ -34,6 +34,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // Permitir peticiones OPTIONS (preflight CORS) sin autenticación
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader(AUTHORIZATION_HEADER);
 
         if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
