@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
     private static final Logger log = LoggerFactory.getLogger(ExcelNewServiceUseCase.class);
     private final JdbcTemplate jdbcTemplate;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
 
     // =======================
     // Constantes SQL
@@ -104,24 +106,26 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
     private static final String sqlIncome =
             "SELECT t.category_id, c.name AS category_name, t.asset_id, a.name AS asset_name, " +
-                    "t.liability_id, l.name AS liability_name, t.related_asset_id, ra.name AS related_asset_name, t.amount " +
+                    "t.liability_id, l.name AS liability_name, t.related_asset_id, ra.name AS related_asset_name, " +
+                    "t.amount, t.transaction_date " +
                     "FROM transactions t " +
                     "LEFT JOIN categories c ON t.category_id = c.category_id " +
                     "LEFT JOIN assets a ON t.asset_id = a.asset_id " +
                     "LEFT JOIN liabilities l ON t.liability_id = l.liability_id " +
                     "LEFT JOIN assets ra ON t.related_asset_id = ra.asset_id " +
-                    "WHERE t.user_id = ? AND t.transaction_type = 'income' AND t.transaction_date = ? " +
+                    "WHERE t.user_id = ? AND t.transaction_type = 'income' AND DATE_TRUNC('month', t.transaction_date) = DATE_TRUNC('month', ?::date) " +
                     "ORDER BY t.transaction_id";
 
     private static final String sqlExpense =
             "SELECT t.category_id, c.name AS category_name, t.asset_id, a.name AS asset_name, " +
-                    "t.liability_id, l.name AS liability_name, t.related_asset_id, ra.name AS related_asset_name, t.amount " +
+                    "t.liability_id, l.name AS liability_name, t.related_asset_id, ra.name AS related_asset_name, " +
+                    "t.amount, t.transaction_date " +
                     "FROM transactions t " +
                     "LEFT JOIN categories c ON t.category_id = c.category_id " +
                     "LEFT JOIN assets a ON t.asset_id = a.asset_id " +
                     "LEFT JOIN liabilities l ON t.liability_id = l.liability_id " +
                     "LEFT JOIN assets ra ON t.related_asset_id = ra.asset_id " +
-                    "WHERE t.user_id = ? AND t.transaction_type = 'expense' AND t.transaction_date = ? " +
+                    "WHERE t.user_id = ? AND t.transaction_type = 'expense' AND DATE_TRUNC('month', t.transaction_date) = DATE_TRUNC('month', ?::date) " +
                     "ORDER BY t.transaction_id";
 
 
@@ -162,8 +166,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 int liabilityCount = saveLiabilities(sheet, userId, defaultDate, "Y", "Z", "AA", "AB", "AC", "AD", "AE");
 
                 // luego ingresos y gastos
-                List<Transaction> incomeTransactionList = saveIncome(sheet, userId, "F", "G", "H", "I", "J", defaultDate);
-                List<Transaction> expenseTransactionList = saveExpense(sheet, userId, "L", "M", "N", "O", "P", defaultDate);
+                List<Transaction> incomeTransactionList = saveIncome(sheet, userId, "F", "G", "H", "I", "J", "K", defaultDate);
+                List<Transaction> expenseTransactionList = saveExpense(sheet, userId, "M", "N", "O", "P", "Q", "R", defaultDate);
 
                 log.info("Filas leídas - Ingresos: {}, Gastos: {}, Activos: {}, Pasivos: {}",
                         incomeTransactionList.size(), expenseTransactionList.size(), assetCount, liabilityCount);
@@ -198,7 +202,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
             String name = catCell.toString();
             Long assetTypeId = getAssetTypeId(typeCell.toString());
-            LocalDate acqDate = acqDateCell != null && !acqDateCell.toString().isBlank() ? LocalDate.parse(acqDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : null;
+            LocalDate acqDate = parseDateCell(acqDateCell);
             Double acqValue = acqValueCell != null ? evaluaSumaResta(acqValueCell.toString()) : 0D;
             Double currentValue = evaluaSumaResta(currentValueCell.toString());
             //1.crear/actualizar asset
@@ -240,8 +244,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             BigDecimal interestRate = interestRateCell != null && !interestRateCell.toString().isBlank()
                     ? new BigDecimal(interestRateCell.toString().replace(",", "."))
                     : null;
-            LocalDate startDate = startDateCell != null && !startDateCell.toString().isBlank() ? LocalDate.parse(startDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : null;
-            LocalDate endDate = endDateCell != null && !endDateCell.toString().isBlank() ? LocalDate.parse(endDateCell.toString(), java.time.format.DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : null;
+            LocalDate startDate = parseDateCell(startDateCell);
+            LocalDate endDate = parseDateCell(endDateCell);
             var outstandingBalance = evaluaSumaResta(outstandingBalanceCell.toString());
 
             //1.crear/actualizar liability
@@ -259,7 +263,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     }
 
     private List<Transaction> saveIncome(Sheet sheet, Long userId, String colCategory, String colAsset,
-                                         String colLiability, String colRelatedAsset, String colAmount, LocalDate defaultDate) {
+                                         String colLiability, String colRelatedAsset, String colAmount, String colDate, LocalDate defaultDate) {
         List<Transaction> transactionList = new ArrayList<>();
         int start = 2; // fila 3 en Excel
         for (int rowNum = start; rowNum < 102; rowNum++) {
@@ -271,6 +275,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             Cell liabilityCell = row.getCell(CellReference.convertColStringToIndex(colLiability));
             Cell relatedAssetCell = row.getCell(CellReference.convertColStringToIndex(colRelatedAsset));
             Cell amountCell = row.getCell(CellReference.convertColStringToIndex(colAmount));
+            Cell dateCell = row.getCell(CellReference.convertColStringToIndex(colDate));
 
             if (catCell == null || catCell.toString().isBlank() ||
                     amountCell == null || amountCell.toString().isBlank()) continue;
@@ -280,17 +285,26 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             Long liabilityId = liabilityCell != null && !liabilityCell.toString().isBlank() ? getLiabilityId(userId, liabilityCell.toString()) : null;
             Long relatedAssetId = relatedAssetCell != null && !relatedAssetCell.toString().isBlank() ? getAssetId(userId, relatedAssetCell.toString()) : null;
             double amount = evaluaSumaResta(amountCell.toString());
+            
+            // Intentar parsear fecha de la celda, si no usar defaultDate
+            LocalDate transactionDate = defaultDate;
+            if (dateCell != null && !dateCell.toString().trim().isEmpty()) {
+                LocalDate parsedDate = parseDateCell(dateCell);
+                if (parsedDate != null) {
+                    transactionDate = parsedDate;
+                }
+            }
 
-            jdbcTemplate.update(SQL_INSERT_TRANSACTION, userId, categoryId, assetId, liabilityId, relatedAssetId, "income", amount, defaultDate);
+            jdbcTemplate.update(SQL_INSERT_TRANSACTION, userId, categoryId, assetId, liabilityId, relatedAssetId, "income", amount, transactionDate);
 
-            transactionList.add(new Transaction(userId, categoryId, assetId, liabilityId, relatedAssetId, amount, "income", defaultDate));
+            transactionList.add(new Transaction(userId, categoryId, assetId, liabilityId, relatedAssetId, amount, "income", transactionDate));
         }
         return transactionList;
     }
 
 
     private List<Transaction> saveExpense(Sheet sheet, Long userId, String colCategory, String colAsset,
-                                          String colLiability, String colRelatedAsset, String colAmount, LocalDate defaultDate) {
+                                          String colLiability, String colRelatedAsset, String colAmount, String colDate, LocalDate defaultDate) {
         List<Transaction> transactionList = new ArrayList<>();
         int start = 2; // fila 3 en Excel
         for (int rowNum = start; rowNum < 102; rowNum++) {
@@ -302,6 +316,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             Cell liabilityCell = row.getCell(CellReference.convertColStringToIndex(colLiability));
             Cell relatedAssetCell = row.getCell(CellReference.convertColStringToIndex(colRelatedAsset));
             Cell amountCell = row.getCell(CellReference.convertColStringToIndex(colAmount));
+            Cell dateCell = row.getCell(CellReference.convertColStringToIndex(colDate));
 
             if (catCell == null || catCell.toString().isBlank() ||
                     amountCell == null || amountCell.toString().isBlank()) continue;
@@ -311,10 +326,19 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             Long liabilityId = liabilityCell != null && !liabilityCell.toString().isBlank() ? getLiabilityId(userId, liabilityCell.toString()) : null;
             Long relatedAssetId = relatedAssetCell != null && !relatedAssetCell.toString().isBlank() ? getAssetId(userId, relatedAssetCell.toString()) : null;
             double amount = evaluaSumaResta(amountCell.toString());
+            
+            // Intentar parsear fecha de la celda, si no usar defaultDate
+            LocalDate transactionDate = defaultDate;
+            if (dateCell != null && !dateCell.toString().trim().isEmpty()) {
+                LocalDate parsedDate = parseDateCell(dateCell);
+                if (parsedDate != null) {
+                    transactionDate = parsedDate;
+                }
+            }
 
-            jdbcTemplate.update(SQL_INSERT_TRANSACTION, userId, categoryId, assetId, liabilityId, relatedAssetId, "expense", amount, defaultDate);
+            jdbcTemplate.update(SQL_INSERT_TRANSACTION, userId, categoryId, assetId, liabilityId, relatedAssetId, "expense", amount, transactionDate);
 
-            transactionList.add(new Transaction(userId, categoryId, assetId, liabilityId, relatedAssetId, amount, "expense", defaultDate));
+            transactionList.add(new Transaction(userId, categoryId, assetId, liabilityId, relatedAssetId, amount, "expense", transactionDate));
         }
         return transactionList;
     }
@@ -394,6 +418,95 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
     private Long getLiabilityTypeId(String name) {
         return jdbcTemplate.queryForObject(SQL_SELECT_LIABILITY_TYPE_ID, Long.class, name);
+    }
+
+    /**
+     * Parsea una celda de Excel que puede contener una fecha en formato numérico (Date) o texto (String).
+     * Maneja múltiples formatos de fecha.
+     */
+    private LocalDate parseDateCell(Cell dateCell) {
+        if (dateCell == null) {
+            return null;
+        }
+
+        try {
+            String dateString = null;
+            CellType cellType = dateCell.getCellType();
+            
+            // Si la celda es de tipo NUMERIC, puede ser una fecha de Excel
+            if (cellType == CellType.NUMERIC) {
+                if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(dateCell)) {
+                    // Es una fecha numérica formateada de Excel
+                    try {
+                        java.util.Date date = dateCell.getDateCellValue();
+                        return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                    } catch (Exception e) {
+                        log.warn("Error convirtiendo fecha numérica, intentando como texto: {}", e.getMessage());
+                        // Fallback: intentar obtener el valor formateado como string
+                        DataFormatter formatter = new DataFormatter();
+                        dateString = formatter.formatCellValue(dateCell).trim();
+                    }
+                } else {
+                    // No está formateada como fecha, no es una fecha
+                    return null;
+                }
+            } 
+            // Si es STRING, obtener el valor directamente
+            else if (cellType == CellType.STRING) {
+                dateString = dateCell.getStringCellValue().trim();
+            } 
+            // Si es FORMULA, evaluar primero
+            else if (cellType == CellType.FORMULA) {
+                // Intentar obtener el valor como fecha si es numérico
+                if (dateCell.getCachedFormulaResultType() == CellType.NUMERIC) {
+                    if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(dateCell)) {
+                        try {
+                            java.util.Date date = dateCell.getDateCellValue();
+                            return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+                        } catch (Exception e) {
+                            DataFormatter formatter = new DataFormatter();
+                            dateString = formatter.formatCellValue(dateCell).trim();
+                        }
+                    }
+                } else if (dateCell.getCachedFormulaResultType() == CellType.STRING) {
+                    dateString = dateCell.getStringCellValue().trim();
+                }
+            }
+
+            // Si tenemos un string para parsear
+            if (dateString == null || dateString.isBlank()) {
+                return null;
+            }
+
+            // Log del valor que intentamos parsear para debugging
+            log.debug("Intentando parsear fecha: '{}'", dateString);
+
+            // Intentar parsear con el formato esperado (dd-MMM-yyyy con Locale.ENGLISH)
+            try {
+                return LocalDate.parse(dateString, DATE_FORMATTER);
+            } catch (Exception e) {
+                log.debug("Fallo parseo con dd-MMM-yyyy para '{}': {}", dateString, e.getMessage());
+                
+                // Intentar otros formatos comunes
+                String[] formats = {
+                    "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd",
+                    "dd-MM-yyyy", "MM-dd-yyyy", "dd.MM.yyyy",
+                    "d-MMM-yyyy", "dd MMM yyyy", "d MMM yyyy"
+                };
+                for (String format : formats) {
+                    try {
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format, Locale.ENGLISH);
+                        return LocalDate.parse(dateString, formatter);
+                    } catch (Exception ignored) {}
+                }
+                
+                log.error("No se pudo parsear la fecha: '{}'. Tipo de celda: {}", dateString, cellType);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Error parseando celda de fecha (tipo: {}): {}", dateCell.getCellType(), e.getMessage(), e);
+            return null;
+        }
     }
 
     private Long getLiabilityId(Long userId, String name) {
@@ -486,24 +599,54 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                             row.createCell(8).setCellValue(inc.get("related_asset_name").toString());
                         if (inc.get("amount") != null)
                             row.createCell(9).setCellValue(((Number) inc.get("amount")).doubleValue());
+                        // Fecha
+                        if (inc.get("transaction_date") != null) {
+                            Object dateObj = inc.get("transaction_date");
+                            String s = dateObj.toString();
+                            try {
+                                if (dateObj instanceof java.sql.Date) {
+                                    s = ((java.sql.Date) dateObj).toLocalDate().format(dtf);
+                                } else if (dateObj instanceof java.time.LocalDate) {
+                                    s = ((java.time.LocalDate) dateObj).format(dtf);
+                                } else {
+                                    s = LocalDate.parse(dateObj.toString()).format(dtf);
+                                }
+                            } catch (Exception ignored) {}
+                            row.createCell(10).setCellValue(s);
+                        }
                     }
 
                     if (i < expenses.size()) {
                         Map<String, Object> exp = expenses.get(i);
                         if (exp.get("category_name") != null)
-                            row.createCell(11).setCellValue(exp.get("category_name").toString());
+                            row.createCell(12).setCellValue(exp.get("category_name").toString());
                         if (exp.get("asset_name") != null)
-                            row.createCell(12).setCellValue(exp.get("asset_name").toString());
+                            row.createCell(13).setCellValue(exp.get("asset_name").toString());
                         if (exp.get("liability_name") != null)
-                            row.createCell(13).setCellValue(exp.get("liability_name").toString());
+                            row.createCell(14).setCellValue(exp.get("liability_name").toString());
                         if (exp.get("related_asset_name") != null)
-                            row.createCell(14).setCellValue(exp.get("related_asset_name").toString());
+                            row.createCell(15).setCellValue(exp.get("related_asset_name").toString());
                         if (exp.get("amount") != null)
-                            row.createCell(15).setCellValue(((Number) exp.get("amount")).doubleValue());
+                            row.createCell(16).setCellValue(((Number) exp.get("amount")).doubleValue());
+                        // Fecha
+                        if (exp.get("transaction_date") != null) {
+                            Object dateObj = exp.get("transaction_date");
+                            String s = dateObj.toString();
+                            try {
+                                if (dateObj instanceof java.sql.Date) {
+                                    s = ((java.sql.Date) dateObj).toLocalDate().format(dtf);
+                                } else if (dateObj instanceof java.time.LocalDate) {
+                                    s = ((java.time.LocalDate) dateObj).format(dtf);
+                                } else {
+                                    s = LocalDate.parse(dateObj.toString()).format(dtf);
+                                }
+                            } catch (Exception ignored) {}
+                            row.createCell(17).setCellValue(s);
+                        }
                     }
                 }
 
-                // Assets (fila inicial 5 => índice 4) en columnas R..V (17..21)
+                // Assets (fila inicial 5 => índice 4) en columnas S..X (19..24)
                 List<Map<String, Object>> assets = jdbcTemplate.queryForList(sqlAssetsWithValue, firstOfMonth, userId);
                 int assetRow = 4;
                 LocalDate prevDate = firstOfMonth.minusMonths(1);
@@ -512,8 +655,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                     if (row == null) row = sheet.createRow(assetRow);
                     Long assetId = r.get("asset_id") != null ? ((Number) r.get("asset_id")).longValue() : null;
                     // name
-                    row.createCell(17).setCellValue(r.get("name") != null ? r.get("name").toString() : "");
-                    row.createCell(18).setCellValue(r.get("asset_type_name") != null ? r.get("asset_type_name").toString() : "");
+                    row.createCell(19).setCellValue(r.get("name") != null ? r.get("name").toString() : "");
+                    row.createCell(20).setCellValue(r.get("asset_type_name") != null ? r.get("asset_type_name").toString() : "");
                     // acquisition_date
                     if (r.get("acquisition_date") != null) {
                         Object d = r.get("acquisition_date");
@@ -527,41 +670,41 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                                 s = LocalDate.parse(d.toString()).format(dtf);
                             }
                         } catch (Exception ignored) {}
-                        row.createCell(19).setCellValue(s);
+                        row.createCell(21).setCellValue(s);
                     } else {
-                        row.createCell(19).setCellValue("");
+                        row.createCell(21).setCellValue("");
                     }
                     // acquisition_value
                     double acqVal = r.get("acquisition_value") != null ? ((Number) r.get("acquisition_value")).doubleValue() : 0.0;
-                    row.createCell(20).setCellValue(acqVal);
+                    row.createCell(22).setCellValue(acqVal);
                     // current_value (valor del mes)
                     double currentValue = r.get("current_value") != null ? ((Number) r.get("current_value")).doubleValue() : 0.0;
-                    row.createCell(21).setCellValue(currentValue);
+                    row.createCell(23).setCellValue(currentValue);
 
-                    // respecto al mes anterior -> columna W (índice 22)
+                    // respecto al mes anterior -> columna Y (índice 24)
                     Double prev = assetId != null ? getPreviousAssetValue(assetId, prevDate) : null;
                     if (prev != null) {
-                        row.createCell(22).setCellValue(currentValue - prev);
+                        row.createCell(24).setCellValue(currentValue - prev);
                     } else {
                         // si no hay dato anterior, dejar 0 o vacío; aquí se pone 0.0
-                        row.createCell(22).setCellValue(0.0);
+                        row.createCell(24).setCellValue(0.0);
                     }
 
                     assetRow++;
                     if (assetRow >= 102) break;
                 }
 
-                // Liabilities (fila inicial 5 => índice 4) en columnas Y..AE (24..30)
+                // Liabilities (fila inicial 5 => índice 4) en columnas Z..AF (26..33)
                 List<Map<String, Object>> liabs = jdbcTemplate.queryForList(sqlLiabsWithValue, firstOfMonth, userId);
                 int liabRow = 4;
                 for (Map<String, Object> r : liabs) {
                     Row row = sheet.getRow(liabRow);
                     if (row == null) row = sheet.createRow(liabRow);
                     Long liabilityId = r.get("liability_id") != null ? ((Number) r.get("liability_id")).longValue() : null;
-                    row.createCell(24).setCellValue(r.get("name") != null ? r.get("name").toString() : "");
-                    row.createCell(25).setCellValue(r.get("liability_type_name") != null ? r.get("liability_type_name").toString() : "");
-                    row.createCell(26).setCellValue(r.get("principal_amount") != null ? ((Number) r.get("principal_amount")).doubleValue() : 0.0);
-                    row.createCell(27).setCellValue(r.get("annual_rate") != null ? ((Number) r.get("annual_rate")).doubleValue() : 0.0);
+                    row.createCell(26).setCellValue(r.get("name") != null ? r.get("name").toString() : "");
+                    row.createCell(27).setCellValue(r.get("liability_type_name") != null ? r.get("liability_type_name").toString() : "");
+                    row.createCell(28).setCellValue(r.get("principal_amount") != null ? ((Number) r.get("principal_amount")).doubleValue() : 0.0);
+                    row.createCell(29).setCellValue(r.get("annual_rate") != null ? ((Number) r.get("annual_rate")).doubleValue() : 0.0);
                     // start_date
                     if (r.get("start_date") != null) {
                         Object d = r.get("start_date");
@@ -575,9 +718,9 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                                 s = LocalDate.parse(d.toString()).format(dtf);
                             }
                         } catch (Exception ignored) {}
-                        row.createCell(28).setCellValue(s);
+                        row.createCell(30).setCellValue(s);
                     } else {
-                        row.createCell(28).setCellValue("");
+                        row.createCell(30).setCellValue("");
                     }
                     // end_date
                     if (r.get("end_date") != null) {
@@ -592,19 +735,19 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                                 s = LocalDate.parse(d.toString()).format(dtf);
                             }
                         } catch (Exception ignored) {}
-                        row.createCell(29).setCellValue(s);
+                        row.createCell(31).setCellValue(s);
                     } else {
-                        row.createCell(29).setCellValue("");
+                        row.createCell(31).setCellValue("");
                     }
                     double outstanding = r.get("outstanding_balance") != null ? ((Number) r.get("outstanding_balance")).doubleValue() : 0.0;
-                    row.createCell(30).setCellValue(outstanding);
+                    row.createCell(32).setCellValue(outstanding);
 
-                    // respecto al mes anterior -> columna AF (índice 31)
+                    // respecto al mes anterior -> columna AG (índice 33)
                     Double prevOutstanding = liabilityId != null ? getPreviousLiabilityOutstanding(liabilityId, prevDate) : null;
                     if (prevOutstanding != null) {
-                        row.createCell(31).setCellValue(outstanding - prevOutstanding);
+                        row.createCell(33).setCellValue(outstanding - prevOutstanding);
                     } else {
-                        row.createCell(31).setCellValue(0.0);
+                        row.createCell(33).setCellValue(0.0);
                     }
 
                     liabRow++;
@@ -628,7 +771,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
 
 
     private static void autoSizeColumn(XSSFWorkbook workbook) {
-        int lastCol = 31; // A..AF
+        int lastCol = 33; // A..AH
         int emptyColumnChars = 4;   // ancho para columnas vacías (en caracteres)
         int minContentChars = 6;    // ancho mínimo para columnas con contenido
         DataFormatter formatter = new DataFormatter();
@@ -676,9 +819,9 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     // language: java
     private static void createBorders(Workbook workbook) {
         String[] columns = {
-                "F","G","H","I","J","L","M","N","O","P",
-                "R","S","T","U","V","W",
-                "Y","Z","AA","AB","AC","AD","AE","AF"
+                "F","G","H","I","J","K","M","N","O","P","Q","R",
+                "S","T","U","V","W","X","Y","Z",
+                "AB","AC","AD","AE","AF","AG","AH"
         };
 
         final int startRow = 1;  // fila 2 en Excel
@@ -731,15 +874,16 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     }
 
     private void writeHeaderLeft(Sheet sheet, Workbook workbook, long userId, LocalDate firstOfMonth) {
-        //Neto (fila 2 => índice 1)
+        //Neto (fila 2 => índice 1) - Beneficio: Ingresos - Gastos
         Row header = sheet.getRow(1);
         createCellWithFormat(workbook, header.createCell(1), "Neto", IndexedColors.YELLOW, false);
-        createCellWithFormat(workbook, header.createCell(2), sumaCeldas("J2","P2"), IndexedColors.LIGHT_YELLOW, false);
+        String netoFormula = "=" + sumaRango("J3","J52").substring(1) + "-" + sumaRango("Q3","Q52").substring(1);
+        createCellWithFormat(workbook, header.createCell(2), netoFormula, IndexedColors.LIGHT_YELLOW, false);
 
         //Beneficio (fila 3 => índice 2)
         header = sheet.getRow(2);
         createCellWithFormat(workbook, header.createCell(1), "Beneficio", IndexedColors.YELLOW, false);
-        String beneficioFormula = "=" + sumaRango("J3","J52").substring(1) + "-" + sumaRango("P3","P52").substring(1);
+        String beneficioFormula = "=" + sumaRango("J3","J52").substring(1) + "-" + sumaRango("Q3","Q52").substring(1);
         createCellWithFormat(workbook, header.createCell(2), beneficioFormula, IndexedColors.LIGHT_YELLOW, false);        //Ingreso Neto (fila 4 => índice 3)
         header = sheet.getRow(3);
         createCellWithFormat(workbook, header.createCell(1), "Ingreso Neto", IndexedColors.YELLOW, false);
@@ -748,7 +892,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         //Tesoreria neta (fila 6 => índice 5)
         header = sheet.getRow(5);
         createCellWithFormat(workbook, header.createCell(1), "Tesoreria neta", IndexedColors.YELLOW, false);
-        String tesoreriaFormula = "=" + sumaRango("V5","V52").substring(1) + "-" + sumaRango("AE5","AE52").substring(1);
+        String tesoreriaFormula = "=" + sumaRango("X5","X52").substring(1) + "-" + sumaRango("AG5","AG52").substring(1);
         createCellWithFormat(workbook, header.createCell(2), tesoreriaFormula, IndexedColors.LIGHT_YELLOW, false);
         //Total Líquido (fila 7 => índice 6)
         header = sheet.getRow(6);
@@ -768,60 +912,62 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         createCellWithFormat(workbook, header.createCell(7), "Pasivo", IndexedColors.GREEN, false);
         createCellWithFormat(workbook, header.createCell(8), "Activo que repercute", IndexedColors.GREEN, false);
         createCellWithFormat(workbook, header.createCell(9), sumaRango("J3","J52"), IndexedColors.GREEN, false);
+        createCellWithFormat(workbook, header.createCell(10), "Fecha", IndexedColors.GREEN, false);
 
-        createCellWithFormat(workbook, header.createCell(11), "Gastos", IndexedColors.RED, false);
-        createCellWithFormat(workbook, header.createCell(12), "Activo", IndexedColors.RED, false);
-        createCellWithFormat(workbook, header.createCell(13), "Pasivo", IndexedColors.RED, false);
-        createCellWithFormat(workbook, header.createCell(14), "Activo que repercute", IndexedColors.RED, false);
-        createCellWithFormat(workbook, header.createCell(15), sumaRango("P3","P52"), IndexedColors.RED, false);
+        createCellWithFormat(workbook, header.createCell(12), "Gastos", IndexedColors.RED, false);
+        createCellWithFormat(workbook, header.createCell(13), "Activo", IndexedColors.RED, false);
+        createCellWithFormat(workbook, header.createCell(14), "Pasivo", IndexedColors.RED, false);
+        createCellWithFormat(workbook, header.createCell(15), "Activo que repercute", IndexedColors.RED, false);
+        createCellWithFormat(workbook, header.createCell(16), sumaRango("Q3","Q52"), IndexedColors.RED, false);
+        createCellWithFormat(workbook, header.createCell(17), "Fecha", IndexedColors.RED, false);
 
-        createCellWithFormat(workbook, header.createCell(17), "ACTIVOS", IndexedColors.LIME, true);
-        sheet.addMergedRegion(new CellRangeAddress(1,1,17,22)); // Agrupa R..W
-        createCellWithFormat(workbook, header.createCell(24), "PASIVOS", IndexedColors.GOLD, true);
-        sheet.addMergedRegion(new CellRangeAddress(1,1,24,31)); // Agrupa Y..AF
+        createCellWithFormat(workbook, header.createCell(19), "ACTIVOS", IndexedColors.LIME, true);
+        sheet.addMergedRegion(new CellRangeAddress(1,1,19,24)); // Agrupa S..X
+        createCellWithFormat(workbook, header.createCell(26), "PASIVOS", IndexedColors.GOLD, true);
+        sheet.addMergedRegion(new CellRangeAddress(1,1,26,33)); // Agrupa Z..AG
     }
 
     private static void writeHeaderRow3(Sheet sheet, Workbook workbook) {
         Row header = sheet.getRow(2);
         //Activos
-        createCellWithFormat(workbook, header.createCell(17), "Concepto", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(18), "Tipo", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(19), "Fecha adquisión", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(20), "Valor adquisición", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(21), "Valor actual", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(22), "Respecto a mes anterior", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(19), "Concepto", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(20), "Tipo", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(21), "Fecha adquisión", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(22), "Valor adquisición", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(23), "Valor actual", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(24), "Respecto a mes anterior", IndexedColors.LIME, false);
 
         //Pasivos
-        createCellWithFormat(workbook, header.createCell(24), "Concepto", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(25), "Tipo", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(26), "Cantidad inicial", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(27), "Tasa de interes", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(28), "Fecha inicio", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(29), "Fecha fin", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(30), "Saldo pendiente", IndexedColors.YELLOW1, false);
-        createCellWithFormat(workbook, header.createCell(31), "Respecto a mes anterior", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(26), "Concepto", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(27), "Tipo", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(28), "Cantidad inicial", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(29), "Tasa de interes", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(30), "Fecha inicio", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(31), "Fecha fin", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(32), "Saldo pendiente", IndexedColors.YELLOW1, false);
+        createCellWithFormat(workbook, header.createCell(33), "Respecto a mes anterior", IndexedColors.YELLOW1, false);
     }
 
     private static void writeHeaderRow4(Sheet sheet, Workbook workbook) {
         Row header = sheet.getRow(3);
 
         //Activos
-        createCellWithFormat(workbook, header.createCell(17), "Total", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(18), "", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(19), "", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(19), "Total", IndexedColors.LIME, false);
         createCellWithFormat(workbook, header.createCell(20), "", IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(21), sumaRango("V5","V52"), IndexedColors.LIME, false);
-        createCellWithFormat(workbook, header.createCell(22), sumaRango("W5","W52"), IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(21), "", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(22), "", IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(23), sumaRango("Y5","Y52"), IndexedColors.LIME, false);
+        createCellWithFormat(workbook, header.createCell(24), sumaRango("Z5","Z52"), IndexedColors.LIME, false);
 
         //Pasivos
-        createCellWithFormat(workbook, header.createCell(24), "Total", IndexedColors.GOLD, false);
-        createCellWithFormat(workbook, header.createCell(25), "", IndexedColors.GOLD, false);
-        createCellWithFormat(workbook, header.createCell(26), "", IndexedColors.GOLD, false);
+        createCellWithFormat(workbook, header.createCell(26), "Total", IndexedColors.GOLD, false);
         createCellWithFormat(workbook, header.createCell(27), "", IndexedColors.GOLD, false);
         createCellWithFormat(workbook, header.createCell(28), "", IndexedColors.GOLD, false);
         createCellWithFormat(workbook, header.createCell(29), "", IndexedColors.GOLD, false);
-        createCellWithFormat(workbook, header.createCell(30), sumaRango("AE5", "AE52"), IndexedColors.GOLD, false);
-        createCellWithFormat(workbook, header.createCell(31), sumaRango("AF5", "AF52"), IndexedColors.GOLD, false);
+        createCellWithFormat(workbook, header.createCell(30), "", IndexedColors.GOLD, false);
+        createCellWithFormat(workbook, header.createCell(31), "", IndexedColors.GOLD, false);
+        createCellWithFormat(workbook, header.createCell(32), sumaRango("AG5", "AG52"), IndexedColors.GOLD, false);
+        createCellWithFormat(workbook, header.createCell(33), sumaRango("AH5", "AH52"), IndexedColors.GOLD, false);
     }
 
     private void aplicarFormatosMonedaYFecha(Sheet sheet, Workbook workbook) {
@@ -832,7 +978,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         short fechaFormat = format.getFormat("dd/mm/yyyy");
 
         // Columnas de moneda (índices base 0)
-        int[] columnasMoneda = {2, 9, 15}; // C, J, P
+        int[] columnasMoneda = {2, 9, 16}; // C, J, Q
         for (int col : columnasMoneda) {
             for (int row = 0; row <= sheet.getLastRowNum(); row++) {
                 Row r = sheet.getRow(row);
@@ -847,11 +993,27 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 }
             }
         }
-        // U (col 20) filas 5-52
+        // Columnas de fecha en transacciones (10 y 17)
+        int[] colsFechaTrans = {10, 17};
+        for (int col : colsFechaTrans) {
+            for (int row = 2; row <= 51; row++) {
+                Row r = sheet.getRow(row);
+                if (r != null) {
+                    Cell c = r.getCell(col);
+                    if (c != null) {
+                        CellStyle style = workbook.createCellStyle();
+                        style.cloneStyleFrom(c.getCellStyle());
+                        style.setDataFormat(fechaFormat);
+                        c.setCellStyle(style);
+                    }
+                }
+            }
+        }
+        // W (col 22) filas 5-52
         for (int row = 4; row <= 51; row++) {
             Row r = sheet.getRow(row);
             if (r != null) {
-                Cell c = r.getCell(20);
+                Cell c = r.getCell(22);
                 if (c != null) {
                     CellStyle style = workbook.createCellStyle();
                     style.cloneStyleFrom(c.getCellStyle());
@@ -860,8 +1022,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 }
             }
         }
-        // V (col 21), W (col 22), AE (col 30), AF (col 31) filas 4-52
-        int[] colsMonedaRango = {21, 22, 30, 31};
+        // X (col 23), Y (col 24), AG (col 32), AH (col 33) filas 4-52
+        int[] colsMonedaRango = {23, 24, 32, 33};
         for (int col : colsMonedaRango) {
             for (int row = 3; row <= 51; row++) {
                 Row r = sheet.getRow(row);
@@ -876,11 +1038,11 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 }
             }
         }
-        // AA (col 26) filas 5-52
+        // AC (col 28) filas 5-52
         for (int row = 4; row <= 51; row++) {
             Row r = sheet.getRow(row);
             if (r != null) {
-                Cell c = r.getCell(26);
+                Cell c = r.getCell(28);
                 if (c != null) {
                     CellStyle style = workbook.createCellStyle();
                     style.cloneStyleFrom(c.getCellStyle());
@@ -889,8 +1051,8 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 }
             }
         }
-        // T (col 19), AC (col 28), AD (col 29) filas 5-52
-        int[] colsFecha = {19, 28, 29};
+        // U (col 20), AE (col 30), AF (col 31) filas 5-52
+        int[] colsFecha = {20, 30, 31};
         for (int col : colsFecha) {
             for (int row = 4; row <= 51; row++) {
                 Row r = sheet.getRow(row);
@@ -909,7 +1071,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     private static void createCellWithFormat(Workbook workbook, Cell cell, String value, IndexedColors color, boolean alignCenter) {
         boolean isFormula = value != null && value.startsWith("=");
 
-        if (isFormula) {
+        if (isFormula && value != null) {
             // quitar el '=' inicial para setCellFormula
             try {
                 cell.setCellFormula(value.substring(1));
@@ -945,13 +1107,6 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         cell.setCellStyle(bgStyle);
     }
 
-    private static String sumaCeldas(String cellA, String cellB) {
-        if (cellA == null || cellB == null) return "";
-        cellA = cellA.trim().toUpperCase();
-        cellB = cellB.trim().toUpperCase();
-        return "=SUM(" + cellA + "," + cellB + ")";
-    }
-
     private static String sumaRango(String cellA, String cellB) {
         if (cellA == null || cellB == null) return "";
         cellA = cellA.trim().toUpperCase();
@@ -983,14 +1138,6 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         } catch (Exception e) {
             return "=SUM(" + cellA + "," + cellB + ")";
         }
-    }
-    private static String getCellString(Sheet sheet, int rowIdx, int colIdx) {
-        DataFormatter formatter = new DataFormatter();
-        Row row = sheet.getRow(rowIdx);
-        if (row == null) return "";
-        Cell cell = row.getCell(colIdx);
-        if (cell == null) return "";
-        return formatter.formatCellValue(cell);
     }
 
     private static void aplicarFormulas(XSSFWorkbook workbook) {
