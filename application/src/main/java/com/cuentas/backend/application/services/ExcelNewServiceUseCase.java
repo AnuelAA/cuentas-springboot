@@ -7,6 +7,7 @@ import com.cuentas.backend.domain.Transaction;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,6 +142,9 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
             throw new IllegalArgumentException("Archivo vacío");
         }
 
+        // Ajustar límite de seguridad de POI para permitir archivos con alta compresión
+        ZipSecureFile.setMinInflateRatio(0.001);
+        
         try (InputStream is = new ByteArrayInputStream(data);
              Workbook workbook = WorkbookFactory.create(is)) {
 
@@ -162,8 +166,10 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                 log.info("Procesando hoja [{}] para usuario {} en año {}", monthName, userId, year);
 
                 // primero leemos y guardamos los activos y pasivos (y sus valores mensuales)
-                int assetCount = saveAssets(sheet, userId, defaultDate, "R", "S", "T", "U", "V");
-                int liabilityCount = saveLiabilities(sheet, userId, defaultDate, "Y", "Z", "AA", "AB", "AC", "AD", "AE");
+                // Activos: T(nombre), U(tipo), V(fecha adquisición), W(valor adquisición), X(valor actual)
+                int assetCount = saveAssets(sheet, userId, defaultDate, "T", "U", "V", "W","X");
+                // Pasivos: AA(nombre), AB(tipo), AC(cantidad inicial), AD(tasa interés), AE(fecha inicio), AF(fecha fin), AG(saldo pendiente)
+                int liabilityCount = saveLiabilities(sheet, userId, defaultDate, "AA", "AB", "AC", "AD", "AE", "AF", "AG");
 
                 // luego ingresos y gastos
                 List<Transaction> incomeTransactionList = saveIncome(sheet, userId, "F", "G", "H", "I", "J", "K", defaultDate);
