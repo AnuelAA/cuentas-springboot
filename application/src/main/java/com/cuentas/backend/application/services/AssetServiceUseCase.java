@@ -34,7 +34,7 @@ public class AssetServiceUseCase implements AssetServicePort {
     @Override
     public Asset createAsset(Long userId, Asset asset) {
         String sql = "INSERT INTO assets (user_id, asset_type_id, name, description, acquisition_date, acquisition_value) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING asset_id";
+                "VALUES (?, ?, ?, ?, ?, ?) RETURNING asset_id";
 
         Long id = jdbcTemplate.queryForObject(sql, Long.class,
                 userId,
@@ -87,7 +87,7 @@ public class AssetServiceUseCase implements AssetServicePort {
 
     @Override
     public Asset updateAsset(Long userId, Long assetId, Asset asset) {
-        String sql = "UPDATE assets SET asset_type_id = ?, name = ?, description = ?, acquisition_date = ?, acquisition_value = ?, current_value = ?, updated_at = NOW() " +
+        String sql = "UPDATE assets SET asset_type_id = ?, name = ?, description = ?, acquisition_date = ?, acquisition_value = ?, ownership_percentage = ?, updated_at = NOW() " +
                 "WHERE user_id = ? AND asset_id = ?";
         jdbcTemplate.update(sql,
                 asset.getAssetTypeId(),
