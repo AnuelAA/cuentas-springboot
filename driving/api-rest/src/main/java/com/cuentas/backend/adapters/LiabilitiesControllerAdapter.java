@@ -1,9 +1,11 @@
 package com.cuentas.backend.adapters;
 
 import com.cuentas.backend.application.ports.driving.LiabilityServicePort;
+import com.cuentas.backend.domain.Interest;
 import com.cuentas.backend.domain.Liability;
 import com.cuentas.backend.domain.LiabilityValue;
 import com.cuentas.backend.domain.CreateLiabilityValueRequest;
+import com.cuentas.backend.domain.CreateInterestRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -85,6 +87,47 @@ public class LiabilitiesControllerAdapter {
             return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {
             logger.error("Error al crear/actualizar snapshot: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{liabilityId}/interests")
+    public ResponseEntity<Interest> createInterest(
+            @PathVariable Long userId,
+            @PathVariable Long liabilityId,
+            @RequestBody CreateInterestRequest request) {
+        logger.info("Creando interés para userId={}, liabilityId={}, tipo={}, tasa={}, fechaInicio={}", 
+                userId, liabilityId, request.getType(), request.getAnnualRate(), request.getStartDate());
+        try {
+            Interest interest = liabilityService.createInterest(
+                    userId,
+                    liabilityId,
+                    request.getType(),
+                    request.getAnnualRate(),
+                    request.getStartDate()
+            );
+            logger.info("Interés creado: {}", interest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(interest);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error de validación al crear interés: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al crear interés: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{liabilityId}/interests")
+    public ResponseEntity<List<Interest>> getInterests(
+            @PathVariable Long userId,
+            @PathVariable Long liabilityId) {
+        logger.info("Consultando intereses para userId={}, liabilityId={}", userId, liabilityId);
+        try {
+            List<Interest> interests = liabilityService.getInterests(userId, liabilityId);
+            logger.info("Respuesta getInterests: {} intereses encontrados", interests.size());
+            return ResponseEntity.ok(interests);
+        } catch (RuntimeException e) {
+            logger.error("Error al consultar intereses: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

@@ -1,6 +1,7 @@
 package com.cuentas.backend.application.services;
 
 import com.cuentas.backend.application.ports.driving.LiabilityServicePort;
+import com.cuentas.backend.domain.Interest;
 import com.cuentas.backend.domain.Liability;
 import com.cuentas.backend.domain.LiabilityValue;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,6 +30,11 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
             "SELECT lv.value_id, lv.liability_id, lv.valuation_date, lv.end_date, lv.outstanding_balance, lv.created_at " +
                     "FROM liability_values lv JOIN liabilities l ON lv.liability_id = l.liability_id " +
                     "WHERE l.user_id = ? ORDER BY lv.liability_id, lv.valuation_date";
+
+    // SQL para interests
+    private static final String SQL_SELECT_INTERESTS_BY_LIABILITY =
+            "SELECT interest_id, liability_id, type, annual_rate, start_date, created_at " +
+                    "FROM interests WHERE liability_id = ? ORDER BY start_date";
 
     public LiabilityServiceUseCase(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -88,17 +94,36 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
 
     @Override
     public Liability updateLiability(Long userId, Long liabilityId, Liability liability) {
-        String sql = "UPDATE liabilities SET name = ?, description = ?, liability_type_id = ?, principal_amount = ?, start_date = ?, updated_at = NOW() " +
-                "WHERE user_id = ? AND liability_id = ?";
-        jdbcTemplate.update(sql,
-                liability.getName(),
-                liability.getDescription(),
-                liability.getLiabilityTypeId(),
-                liability.getPrincipalAmount(),
-                liability.getStartDate(),
-                userId,
-                liabilityId
-        );
+        // Construir UPDATE dinámico solo con campos no nulos (actualización parcial)
+        StringBuilder sql = new StringBuilder("UPDATE liabilities SET updated_at = NOW()");
+        List<Object> params = new ArrayList<>();
+        
+        if (liability.getName() != null) {
+            sql.append(", name = ?");
+            params.add(liability.getName());
+        }
+        if (liability.getDescription() != null) {
+            sql.append(", description = ?");
+            params.add(liability.getDescription());
+        }
+        if (liability.getLiabilityTypeId() != null) {
+            sql.append(", liability_type_id = ?");
+            params.add(liability.getLiabilityTypeId());
+        }
+        if (liability.getPrincipalAmount() != null) {
+            sql.append(", principal_amount = ?");
+            params.add(liability.getPrincipalAmount());
+        }
+        if (liability.getStartDate() != null) {
+            sql.append(", start_date = ?");
+            params.add(liability.getStartDate());
+        }
+        
+        sql.append(" WHERE user_id = ? AND liability_id = ?");
+        params.add(userId);
+        params.add(liabilityId);
+        
+        jdbcTemplate.update(sql.toString(), params.toArray());
         return getLiability(userId, liabilityId);
     }
 
@@ -163,6 +188,82 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
             created.setEndDate(endDate);
             return created;
         }
+    }
+
+    @Override
+    @Transactional
+    public Interest createInterest(Long userId, Long liabilityId, String type, Double annualRate, LocalDate startDate) {
+        // Validar que el liability existe y pertenece al usuario
+        String checkSql = "SELECT liability_id FROM liabilities WHERE user_id = ? AND liability_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkSql, Long.class, userId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Liability no encontrado o no pertenece al usuario");
+        }
+
+        // Validar tipo de interés
+        if (type == null || type.trim().isEmpty()) {
+            type = "fixed"; // Default
+        } else {
+            type = type.toLowerCase();
+            if (!type.equals("fixed") && !type.equals("variable") && !type.equals("general")) {
+                throw new IllegalArgumentException("Tipo de interés debe ser: 'fixed', 'variable' o 'general'");
+            }
+        }
+
+        // Validar fecha de inicio
+        if (startDate == null) {
+            throw new IllegalArgumentException("startDate es obligatorio");
+        }
+
+        // Validar que annualRate es no negativo si se proporciona
+        if (annualRate != null && annualRate < 0) {
+            throw new IllegalArgumentException("annualRate debe ser mayor o igual a 0");
+        }
+
+        // Insertar nuevo interés
+        String insertSql = "INSERT INTO interests (liability_id, type, annual_rate, start_date, created_at) " +
+                "VALUES (?, ?, ?, ?, NOW()) RETURNING interest_id";
+        Long interestId = jdbcTemplate.queryForObject(insertSql, Long.class, 
+                liabilityId, type, annualRate, startDate);
+
+        Interest interest = new Interest();
+        interest.setInterestId(interestId);
+        interest.setLiabilityId(liabilityId);
+        interest.setType(type);
+        interest.setAnnualRate(annualRate);
+        interest.setStartDate(startDate);
+
+        return interest;
+    }
+
+    @Override
+    public List<Interest> getInterests(Long userId, Long liabilityId) {
+        // Validar que el liability existe y pertenece al usuario
+        String checkSql = "SELECT liability_id FROM liabilities WHERE user_id = ? AND liability_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkSql, Long.class, userId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Liability no encontrado o no pertenece al usuario");
+        }
+
+        // Obtener todos los intereses del pasivo
+        return jdbcTemplate.query(SQL_SELECT_INTERESTS_BY_LIABILITY,
+                (rs, rowNum) -> mapInterest(rs),
+                liabilityId);
+    }
+
+    private Interest mapInterest(ResultSet rs) throws SQLException {
+        Interest interest = new Interest();
+        interest.setInterestId(rs.getLong("interest_id"));
+        interest.setLiabilityId(rs.getLong("liability_id"));
+        interest.setType(rs.getString("type"));
+        interest.setAnnualRate(rs.getDouble("annual_rate"));
+        java.sql.Date sd = rs.getDate("start_date");
+        interest.setStartDate(sd != null ? sd.toLocalDate() : null);
+        interest.setCreatedAt(rs.getTimestamp("created_at") != null ? 
+                rs.getTimestamp("created_at").toLocalDateTime() : null);
+        return interest;
     }
 
     private Liability mapRow(ResultSet rs) throws SQLException {

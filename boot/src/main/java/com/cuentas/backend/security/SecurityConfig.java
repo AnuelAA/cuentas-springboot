@@ -61,6 +61,8 @@ public class SecurityConfig {
                 // Permitir endpoints públicos
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/users").permitAll() // Permitir registro (POST /api/users)
+                .requestMatchers("/api/asset-types").permitAll() // Consultar tipos de activos
+                .requestMatchers("/api/liability-types").permitAll() // Consultar tipos de pasivos
                 .requestMatchers("/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/swagger-ui.html").permitAll()
