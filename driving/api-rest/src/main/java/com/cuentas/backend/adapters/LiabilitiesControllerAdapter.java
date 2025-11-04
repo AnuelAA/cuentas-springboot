@@ -131,4 +131,48 @@ public class LiabilitiesControllerAdapter {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @PutMapping("/{liabilityId}/interests/{interestId}")
+    public ResponseEntity<Interest> updateInterest(
+            @PathVariable Long userId,
+            @PathVariable Long liabilityId,
+            @PathVariable Long interestId,
+            @RequestBody CreateInterestRequest request) {
+        logger.info("Actualizando interés interestId={} para userId={}, liabilityId={}, tipo={}, tasa={}, fechaInicio={}", 
+                interestId, userId, liabilityId, request.getType(), request.getAnnualRate(), request.getStartDate());
+        try {
+            Interest interest = liabilityService.updateInterest(
+                    userId,
+                    liabilityId,
+                    interestId,
+                    request.getType(),
+                    request.getAnnualRate(),
+                    request.getStartDate()
+            );
+            logger.info("Interés actualizado: {}", interest);
+            return ResponseEntity.ok(interest);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error de validación al actualizar interés: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al actualizar interés: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{liabilityId}/interests/{interestId}")
+    public ResponseEntity<Void> deleteInterest(
+            @PathVariable Long userId,
+            @PathVariable Long liabilityId,
+            @PathVariable Long interestId) {
+        logger.info("Eliminando interés interestId={} para userId={}, liabilityId={}", interestId, userId, liabilityId);
+        try {
+            liabilityService.deleteInterest(userId, liabilityId, interestId);
+            logger.info("Interés eliminado exitosamente");
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al eliminar interés: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

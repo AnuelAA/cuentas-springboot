@@ -14,5 +14,7 @@ public interface LiabilityServicePort {
     void deleteLiability(Long userId, Long liabilityId);
     LiabilityValue upsertLiabilityValue(Long userId, Long liabilityId, LocalDate valuationDate, Double outstandingBalance, LocalDate endDate);
     Interest createInterest(Long userId, Long liabilityId, String type, Double annualRate, LocalDate startDate);
+    Interest updateInterest(Long userId, Long liabilityId, Long interestId, String type, Double annualRate, LocalDate startDate);
+    void deleteInterest(Long userId, Long liabilityId, Long interestId);
     List<Interest> getInterests(Long userId, Long liabilityId);
 }

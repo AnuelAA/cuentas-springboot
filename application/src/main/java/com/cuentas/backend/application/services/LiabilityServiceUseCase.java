@@ -238,6 +238,79 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
     }
 
     @Override
+    @Transactional
+    public Interest updateInterest(Long userId, Long liabilityId, Long interestId, String type, Double annualRate, LocalDate startDate) {
+        // Validar que el liability existe y pertenece al usuario
+        String checkLiabilitySql = "SELECT liability_id FROM liabilities WHERE user_id = ? AND liability_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkLiabilitySql, Long.class, userId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Liability no encontrado o no pertenece al usuario");
+        }
+
+        // Validar que el interés existe y pertenece al pasivo correcto
+        String checkInterestSql = "SELECT interest_id FROM interests WHERE interest_id = ? AND liability_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkInterestSql, Long.class, interestId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Interés no encontrado o no pertenece al pasivo indicado");
+        }
+
+        // Validar tipo de interés
+        if (type == null || type.trim().isEmpty()) {
+            type = "fixed"; // Default
+        } else {
+            type = type.toLowerCase();
+            if (!type.equals("fixed") && !type.equals("variable") && !type.equals("general")) {
+                throw new IllegalArgumentException("Tipo de interés debe ser: 'fixed', 'variable' o 'general'");
+            }
+        }
+
+        // Validar fecha de inicio
+        if (startDate == null) {
+            throw new IllegalArgumentException("startDate es obligatorio");
+        }
+
+        // Validar que annualRate es no negativo si se proporciona
+        if (annualRate != null && annualRate < 0) {
+            throw new IllegalArgumentException("annualRate debe ser mayor o igual a 0");
+        }
+
+        // Actualizar el interés
+        String updateSql = "UPDATE interests SET type = ?, annual_rate = ?, start_date = ? WHERE interest_id = ?";
+        jdbcTemplate.update(updateSql, type, annualRate, startDate, interestId);
+
+        Interest interest = new Interest();
+        interest.setInterestId(interestId);
+        interest.setLiabilityId(liabilityId);
+        interest.setType(type);
+        interest.setAnnualRate(annualRate);
+        interest.setStartDate(startDate);
+
+        return interest;
+    }
+
+    @Override
+    @Transactional
+    public void deleteInterest(Long userId, Long liabilityId, Long interestId) {
+        // Validar que el liability existe y pertenece al usuario
+        String checkLiabilitySql = "SELECT liability_id FROM liabilities WHERE user_id = ? AND liability_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkLiabilitySql, Long.class, userId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Liability no encontrado o no pertenece al usuario");
+        }
+
+        // Eliminar el interés
+        String deleteSql = "DELETE FROM interests WHERE interest_id = ? AND liability_id = ?";
+        int rowsAffected = jdbcTemplate.update(deleteSql, interestId, liabilityId);
+        
+        if (rowsAffected == 0) {
+            throw new RuntimeException("Interés no encontrado o no pertenece al pasivo indicado");
+        }
+    }
+
+    @Override
     public List<Interest> getInterests(Long userId, Long liabilityId) {
         // Validar que el liability existe y pertenece al usuario
         String checkSql = "SELECT liability_id FROM liabilities WHERE user_id = ? AND liability_id = ?";
