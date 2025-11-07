@@ -39,7 +39,12 @@ public class SecurityConfig {
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "http://46.101.144.147:*",
-                "https://cuentas.pages.dev:*"
+                "https://cuentas.pages.dev:*",
+                "https://cuentas.pages.dev",
+                "https://joseliyo.top",
+                "https://joseliyo.top:*",
+                "https://www.joseliyo.top",
+                "https://www.joseliyo.top:*"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
