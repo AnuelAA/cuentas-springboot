@@ -18,7 +18,12 @@ public class WebConfig {
                                 "http://127.0.0.1:*",
                                 "http://46.101.144.147:*",
                                 "http://46.101.144.147:3000",
-                                "https://cuentas.pages.dev:*"
+                                "https://cuentas.pages.dev:*",
+                                "https://cuentas.pages.dev",
+                                "https://joseliyo.top",
+                                "https://joseliyo.top:*",
+                                "https://www.joseliyo.top",
+                                "https://www.joseliyo.top:*"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
