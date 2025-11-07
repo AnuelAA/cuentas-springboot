@@ -2,6 +2,8 @@ package com.cuentas.backend.adapters;
 
 import com.cuentas.backend.application.ports.driving.CategoryServicePort;
 import com.cuentas.backend.domain.Category;
+import com.cuentas.backend.domain.CategoryDetail;
+import com.cuentas.backend.domain.ReassignTransactionsRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -54,10 +56,60 @@ public class CategoriesControllerAdapter {
     }
 
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long userId, @PathVariable Long categoryId) {
+    public ResponseEntity<?> deleteCategory(@PathVariable Long userId, @PathVariable Long categoryId) {
         logger.info("Eliminando categoría con categoryId={} para userId={}", categoryId, userId);
-        categoryService.deleteCategory(userId, categoryId);
-        logger.info("Respuesta deleteCategory: No Content");
-        return ResponseEntity.noContent().build();
+        try {
+            categoryService.deleteCategory(userId, categoryId);
+            logger.info("Respuesta deleteCategory: No Content");
+            return ResponseEntity.noContent().build();
+        } catch (IllegalStateException e) {
+            logger.warn("No se puede eliminar categoría: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(java.util.Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error al eliminar categoría: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of("error", "Error al eliminar la categoría"));
+        }
+    }
+
+    @GetMapping("/{categoryId}/subcategories")
+    public ResponseEntity<List<Category>> getSubcategories(@PathVariable Long userId, @PathVariable Long categoryId) {
+        logger.info("Obteniendo subcategorías de categoryId={} para userId={}", categoryId, userId);
+        List<Category> subcategories = categoryService.getSubcategories(userId, categoryId);
+        logger.info("Respuesta getSubcategories: {} subcategorías encontradas", subcategories.size());
+        return ResponseEntity.ok(subcategories);
+    }
+
+    @GetMapping("/{categoryId}/detail")
+    public ResponseEntity<CategoryDetail> getCategoryDetail(@PathVariable Long userId, @PathVariable Long categoryId) {
+        logger.info("Obteniendo detalle de categoryId={} para userId={}", categoryId, userId);
+        try {
+            CategoryDetail detail = categoryService.getCategoryDetail(userId, categoryId);
+            logger.info("Respuesta getCategoryDetail: ingresos={}, gastos={}, transacciones={}", 
+                    detail.getTotalIncome(), detail.getTotalExpenses(), detail.getTransactionCount());
+            return ResponseEntity.ok(detail);
+        } catch (RuntimeException e) {
+            logger.error("Error al obtener detalle de categoría: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{categoryId}/reassign-transactions")
+    public ResponseEntity<?> reassignTransactions(
+            @PathVariable Long userId,
+            @PathVariable Long categoryId,
+            @RequestBody ReassignTransactionsRequest request) {
+        logger.info("Reasignando transacciones de categoryId={} a categoryId={} para userId={}", 
+                categoryId, request.getToCategoryId(), userId);
+        try {
+            categoryService.reassignTransactions(userId, categoryId, request.getToCategoryId());
+            logger.info("Transacciones reasignadas exitosamente");
+            return ResponseEntity.ok(java.util.Map.of("message", "Transacciones reasignadas correctamente"));
+        } catch (RuntimeException e) {
+            logger.error("Error al reasignar transacciones: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 }

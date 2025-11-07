@@ -2,6 +2,7 @@ package com.cuentas.backend.application.ports.driving;
 
 import com.cuentas.backend.domain.Interest;
 import com.cuentas.backend.domain.Liability;
+import com.cuentas.backend.domain.LiabilityDetail;
 import com.cuentas.backend.domain.LiabilityValue;
 import java.time.LocalDate;
 import java.util.List;
@@ -17,4 +18,5 @@ public interface LiabilityServicePort {
     Interest updateInterest(Long userId, Long liabilityId, Long interestId, String type, Double annualRate, LocalDate startDate);
     void deleteInterest(Long userId, Long liabilityId, Long interestId);
     List<Interest> getInterests(Long userId, Long liabilityId);
+    LiabilityDetail getLiabilityDetail(Long userId, Long liabilityId);
 }

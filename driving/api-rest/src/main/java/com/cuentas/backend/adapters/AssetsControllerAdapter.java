@@ -1,6 +1,7 @@
 package com.cuentas.backend.adapters;
 
 import com.cuentas.backend.domain.Asset;
+import com.cuentas.backend.domain.AssetDetail;
 import com.cuentas.backend.domain.AssetValue;
 import com.cuentas.backend.domain.CreateAssetValueRequest;
 import com.cuentas.backend.application.ports.driving.AssetServicePort;
@@ -112,6 +113,20 @@ public class AssetsControllerAdapter {
             return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {
             logger.error("Error al crear/actualizar valoración: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{assetId}/detail")
+    public ResponseEntity<AssetDetail> getAssetDetail(@PathVariable Long userId, @PathVariable Long assetId) {
+        logger.info("Obteniendo detalle de assetId={} para userId={}", assetId, userId);
+        try {
+            AssetDetail detail = assetService.getAssetDetail(userId, assetId);
+            logger.info("Respuesta getAssetDetail: valorActual={}, ingresos={}, gastos={}, ROI={}%", 
+                    detail.getCurrentValue(), detail.getTotalIncome(), detail.getTotalExpenses(), detail.getRoiPercentage());
+            return ResponseEntity.ok(detail);
+        } catch (RuntimeException e) {
+            logger.error("Error al obtener detalle de activo: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.DataAccessException;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -254,6 +255,81 @@ public class AssetServiceUseCase implements AssetServicePort {
         }
 
         return result;
+    }
+
+    @Override
+    public AssetDetail getAssetDetail(Long userId, Long assetId) {
+        // Obtener el activo
+        Asset asset;
+        try {
+            asset = getAsset(userId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Activo no encontrado o no pertenece al usuario");
+        }
+
+        // Obtener el valor actual (último registrado)
+        String sqlCurrentValue = "SELECT current_value FROM asset_values WHERE asset_id = ? ORDER BY valuation_date DESC LIMIT 1";
+        BigDecimal currentValue = jdbcTemplate.query(sqlCurrentValue, rs -> {
+            if (rs.next()) {
+                return BigDecimal.valueOf(rs.getDouble("current_value"));
+            }
+            return BigDecimal.ZERO;
+        }, assetId);
+
+        // Calcular ingresos y gastos del activo (related_asset_id)
+        String sqlIncome = "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND related_asset_id = ? AND transaction_type = 'income'";
+        String sqlExpense = "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND related_asset_id = ? AND transaction_type = 'expense'";
+        
+        BigDecimal totalIncome = jdbcTemplate.queryForObject(sqlIncome, BigDecimal.class, userId, assetId);
+        BigDecimal totalExpenses = jdbcTemplate.queryForObject(sqlExpense, BigDecimal.class, userId, assetId);
+        BigDecimal netProfit = totalIncome.subtract(totalExpenses);
+
+        // Calcular ROI
+        double invested = asset.getAcquisitionValue() != null ? asset.getAcquisitionValue() : 0.0;
+        double roiPercentage = invested != 0 ? (netProfit.doubleValue() / invested) * 100 : 0.0;
+
+        // Contar transacciones
+        String sqlCount = "SELECT COUNT(*) FROM transactions WHERE user_id = ? AND related_asset_id = ?";
+        Integer transactionCount = jdbcTemplate.queryForObject(sqlCount, Integer.class, userId, assetId);
+
+        // Obtener TODAS las transacciones (sin límite)
+        String sqlRecent = "SELECT * FROM transactions WHERE user_id = ? AND related_asset_id = ? ORDER BY transaction_date DESC, transaction_id DESC";
+        List<Transaction> recentTransactions = jdbcTemplate.query(sqlRecent, (rs, rowNum) -> mapTransaction(rs), userId, assetId);
+
+        // Obtener TODO el historial de valores (sin límite de tiempo)
+        String sqlValueHistory = "SELECT * FROM asset_values WHERE asset_id = ? ORDER BY valuation_date DESC";
+        List<AssetValue> valueHistory = jdbcTemplate.query(sqlValueHistory, (rs, rowNum) -> mapAssetValue(rs), assetId);
+
+        return AssetDetail.builder()
+                .asset(asset)
+                .currentValue(currentValue)
+                .totalIncome(totalIncome)
+                .totalExpenses(totalExpenses)
+                .netProfit(netProfit)
+                .roiPercentage(roiPercentage)
+                .transactionCount(transactionCount)
+                .recentTransactions(recentTransactions)
+                .valueHistory(valueHistory)
+                .build();
+    }
+
+    private Transaction mapTransaction(ResultSet rs) throws SQLException {
+        Transaction t = new Transaction();
+        t.setTransactionId(rs.getLong("transaction_id"));
+        t.setUserId(rs.getLong("user_id"));
+        Long categoryId = rs.getLong("category_id");
+        t.setCategoryId(rs.wasNull() ? null : categoryId);
+        Long assetId = rs.getLong("asset_id");
+        t.setAssetId(rs.wasNull() ? null : assetId);
+        Long liabilityId = rs.getLong("liability_id");
+        t.setLiabilityId(rs.wasNull() ? null : liabilityId);
+        Long relatedAssetId = rs.getLong("related_asset_id");
+        t.setRelatedAssetId(rs.wasNull() ? null : relatedAssetId);
+        t.setType(rs.getString("transaction_type"));
+        t.setAmount(rs.getDouble("amount"));
+        t.setTransactionDate(rs.getDate("transaction_date") != null ? rs.getDate("transaction_date").toLocalDate() : null);
+        t.setDescription(rs.getString("description"));
+        return t;
     }
 
     private Asset mapRow(ResultSet rs) throws SQLException {

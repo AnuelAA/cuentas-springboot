@@ -3,6 +3,7 @@ package com.cuentas.backend.adapters;
 import com.cuentas.backend.application.ports.driving.LiabilityServicePort;
 import com.cuentas.backend.domain.Interest;
 import com.cuentas.backend.domain.Liability;
+import com.cuentas.backend.domain.LiabilityDetail;
 import com.cuentas.backend.domain.LiabilityValue;
 import com.cuentas.backend.domain.CreateLiabilityValueRequest;
 import com.cuentas.backend.domain.CreateInterestRequest;
@@ -172,6 +173,20 @@ public class LiabilitiesControllerAdapter {
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             logger.error("Error al eliminar interés: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{liabilityId}/detail")
+    public ResponseEntity<LiabilityDetail> getLiabilityDetail(@PathVariable Long userId, @PathVariable Long liabilityId) {
+        logger.info("Obteniendo detalle de liabilityId={} para userId={}", liabilityId, userId);
+        try {
+            LiabilityDetail detail = liabilityService.getLiabilityDetail(userId, liabilityId);
+            logger.info("Respuesta getLiabilityDetail: saldoPendiente={}, capitalPagado={}, progreso={}%", 
+                    detail.getCurrentOutstandingBalance(), detail.getPrincipalPaid(), detail.getProgressPercentage());
+            return ResponseEntity.ok(detail);
+        } catch (RuntimeException e) {
+            logger.error("Error al obtener detalle de pasivo: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

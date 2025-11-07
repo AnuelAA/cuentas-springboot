@@ -3,11 +3,14 @@ package com.cuentas.backend.application.services;
 import com.cuentas.backend.application.ports.driving.LiabilityServicePort;
 import com.cuentas.backend.domain.Interest;
 import com.cuentas.backend.domain.Liability;
+import com.cuentas.backend.domain.LiabilityDetail;
 import com.cuentas.backend.domain.LiabilityValue;
+import com.cuentas.backend.domain.Transaction;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.dao.DataAccessException;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -337,6 +340,81 @@ public class LiabilityServiceUseCase implements LiabilityServicePort {
         interest.setCreatedAt(rs.getTimestamp("created_at") != null ? 
                 rs.getTimestamp("created_at").toLocalDateTime() : null);
         return interest;
+    }
+
+    @Override
+    public LiabilityDetail getLiabilityDetail(Long userId, Long liabilityId) {
+        // Obtener el pasivo
+        Liability liability;
+        try {
+            liability = getLiability(userId, liabilityId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Pasivo no encontrado o no pertenece al usuario");
+        }
+
+        // Obtener saldo pendiente actual (último registrado)
+        String sqlCurrentBalance = "SELECT outstanding_balance FROM liability_values WHERE liability_id = ? ORDER BY valuation_date DESC LIMIT 1";
+        BigDecimal currentOutstandingBalance = jdbcTemplate.query(sqlCurrentBalance, rs -> {
+            if (rs.next()) {
+                return BigDecimal.valueOf(rs.getDouble("outstanding_balance"));
+            }
+            return BigDecimal.ZERO;
+        }, liabilityId);
+
+        // Calcular capital pagado
+        BigDecimal principalAmount = liability.getPrincipalAmount() != null ? 
+                BigDecimal.valueOf(liability.getPrincipalAmount()) : BigDecimal.ZERO;
+        BigDecimal principalPaid = principalAmount.subtract(currentOutstandingBalance);
+
+        // Calcular porcentaje de progreso
+        BigDecimal progressPercentage = principalAmount.compareTo(BigDecimal.ZERO) > 0 ?
+                principalPaid.divide(principalAmount, 4, java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)) :
+                BigDecimal.ZERO;
+
+        // Contar transacciones
+        String sqlCount = "SELECT COUNT(*) FROM transactions WHERE user_id = ? AND liability_id = ?";
+        Integer transactionCount = jdbcTemplate.queryForObject(sqlCount, Integer.class, userId, liabilityId);
+
+        // Obtener TODAS las transacciones (sin límite)
+        String sqlRecent = "SELECT * FROM transactions WHERE user_id = ? AND liability_id = ? ORDER BY transaction_date DESC, transaction_id DESC";
+        List<Transaction> recentTransactions = jdbcTemplate.query(sqlRecent, (rs, rowNum) -> mapTransaction(rs), userId, liabilityId);
+
+        // Obtener TODO el historial de valores (sin límite de tiempo)
+        String sqlValueHistory = "SELECT * FROM liability_values WHERE liability_id = ? ORDER BY valuation_date DESC";
+        List<LiabilityValue> valueHistory = jdbcTemplate.query(sqlValueHistory, (rs, rowNum) -> mapLiabilityValue(rs), liabilityId);
+
+        // Obtener intereses
+        List<Interest> interests = getInterests(userId, liabilityId);
+
+        return LiabilityDetail.builder()
+                .liability(liability)
+                .currentOutstandingBalance(currentOutstandingBalance)
+                .principalPaid(principalPaid)
+                .progressPercentage(progressPercentage)
+                .transactionCount(transactionCount)
+                .recentTransactions(recentTransactions)
+                .valueHistory(valueHistory)
+                .interests(interests)
+                .build();
+    }
+
+    private Transaction mapTransaction(ResultSet rs) throws SQLException {
+        Transaction t = new Transaction();
+        t.setTransactionId(rs.getLong("transaction_id"));
+        t.setUserId(rs.getLong("user_id"));
+        Long categoryId = rs.getLong("category_id");
+        t.setCategoryId(rs.wasNull() ? null : categoryId);
+        Long assetId = rs.getLong("asset_id");
+        t.setAssetId(rs.wasNull() ? null : assetId);
+        Long liabilityId = rs.getLong("liability_id");
+        t.setLiabilityId(rs.wasNull() ? null : liabilityId);
+        Long relatedAssetId = rs.getLong("related_asset_id");
+        t.setRelatedAssetId(rs.wasNull() ? null : relatedAssetId);
+        t.setType(rs.getString("transaction_type"));
+        t.setAmount(rs.getDouble("amount"));
+        t.setTransactionDate(rs.getDate("transaction_date") != null ? rs.getDate("transaction_date").toLocalDate() : null);
+        t.setDescription(rs.getString("description"));
+        return t;
     }
 
     private Liability mapRow(ResultSet rs) throws SQLException {
