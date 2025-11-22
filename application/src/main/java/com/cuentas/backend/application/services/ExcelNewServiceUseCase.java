@@ -91,11 +91,12 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     // Exportación Excel
 
     private static final String sqlAssetsWithValue =
-            "SELECT a.asset_id, a.name, at.name AS asset_type_name, a.acquisition_date, a.acquisition_value, av.current_value " +
+            "SELECT DISTINCT ON (a.asset_id) a.asset_id, a.name, at.name AS asset_type_name, a.acquisition_date, a.acquisition_value, av.current_value " +
                     "FROM assets a " +
                     "LEFT JOIN asset_types at ON a.asset_type_id = at.asset_type_id " +
-                    "INNER JOIN asset_values av ON av.asset_id = a.asset_id AND av.valuation_date = ? " +
-                    "WHERE a.user_id = ? ORDER BY a.asset_id";
+                    "INNER JOIN asset_values av ON av.asset_id = a.asset_id AND av.valuation_date <= ? " +
+                    "WHERE a.user_id = ? " +
+                    "ORDER BY a.asset_id, av.valuation_date DESC";
 
     private static final String sqlLiabsWithValue =
             "SELECT l.liability_id, l.name, lt.name AS liability_type_name, l.principal_amount, i.type AS interest_type, i.annual_rate, l.start_date, lv.end_date, lv.outstanding_balance " +
@@ -1154,7 +1155,7 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
     private Double getPreviousAssetValue(Long assetId, LocalDate date) {
         try {
             return jdbcTemplate.queryForObject(
-                    "SELECT current_value FROM asset_values WHERE asset_id = ? AND valuation_date = ?",
+                    "SELECT current_value FROM asset_values WHERE asset_id = ? AND valuation_date <= ? ORDER BY valuation_date DESC LIMIT 1",
                     Double.class, assetId, date);
         } catch (DataAccessException e) {
             return null;
@@ -1170,13 +1171,18 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
         }
     }
     private Double sumAssetTypeForMonth(Long userId, String assetTypeName, LocalDate valuationDate) {
-        String sql = "SELECT COALESCE(SUM(av.current_value),0) " +
-                "FROM asset_values av " +
-                "JOIN assets a ON av.asset_id = a.asset_id " +
-                "JOIN asset_types at ON a.asset_type_id = at.asset_type_id " +
-                "WHERE a.user_id = ? AND at.name = ? AND av.valuation_date = ?";
+        // Obtener la última valoración de cada activo hasta la fecha especificada
+        String sql = "SELECT COALESCE(SUM(latest_values.current_value), 0) " +
+                "FROM ( " +
+                "    SELECT DISTINCT ON (a.asset_id) a.asset_id, av.current_value " +
+                "    FROM assets a " +
+                "    JOIN asset_types at ON a.asset_type_id = at.asset_type_id " +
+                "    JOIN asset_values av ON av.asset_id = a.asset_id AND av.valuation_date <= ? " +
+                "    WHERE a.user_id = ? AND at.name = ? " +
+                "    ORDER BY a.asset_id, av.valuation_date DESC " +
+                ") AS latest_values";
         try {
-            Double result = jdbcTemplate.queryForObject(sql, Double.class, userId, assetTypeName, valuationDate);
+            Double result = jdbcTemplate.queryForObject(sql, Double.class, valuationDate, userId, assetTypeName);
             return result != null ? result : 0.0;
         } catch (DataAccessException e) {
             return 0.0;

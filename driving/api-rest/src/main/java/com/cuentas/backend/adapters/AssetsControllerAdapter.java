@@ -117,6 +117,49 @@ public class AssetsControllerAdapter {
         }
     }
 
+    @PutMapping("/{assetId}/valuations/{valuationId}")
+    public ResponseEntity<AssetValue> updateAssetValuation(
+            @PathVariable Long userId,
+            @PathVariable Long assetId,
+            @PathVariable Long valuationId,
+            @RequestBody CreateAssetValueRequest request) {
+        logger.info("Actualizando valoración para userId={}, assetId={}, valuationId={}", userId, assetId, valuationId);
+        try {
+            AssetValue assetValue = assetService.updateAssetValue(
+                    userId,
+                    assetId,
+                    valuationId,
+                    request.getValuationDate(),
+                    request.getCurrentValue(),
+                    request.getAcquisitionValue()
+            );
+            logger.info("Valoración actualizada: {}", assetValue);
+            return ResponseEntity.ok(assetValue);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error de validación: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al actualizar valoración: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{assetId}/valuations/{valuationId}")
+    public ResponseEntity<Void> deleteAssetValuation(
+            @PathVariable Long userId,
+            @PathVariable Long assetId,
+            @PathVariable Long valuationId) {
+        logger.info("Eliminando valoración para userId={}, assetId={}, valuationId={}", userId, assetId, valuationId);
+        try {
+            assetService.deleteAssetValue(userId, assetId, valuationId);
+            logger.info("Valoración eliminada correctamente");
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            logger.error("Error al eliminar valoración: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/{assetId}/detail")
     public ResponseEntity<AssetDetail> getAssetDetail(@PathVariable Long userId, @PathVariable Long assetId) {
         logger.info("Obteniendo detalle de assetId={} para userId={}", assetId, userId);

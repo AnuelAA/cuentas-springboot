@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/users/{userId}/excel")
@@ -124,7 +126,11 @@ public class ExcelControllerAdapter {
             }
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-            String filename = String.format("Cuentas-nuevo-extracted_%d.xlsx", year);
+            // Formato: AAMMDD-cuentas_AAAA.xlsx (ejemplo: 241215-cuentas_2024.xlsx)
+            LocalDate now = LocalDate.now();
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyMMdd");
+            String dateStr = now.format(dateFormatter);
+            String filename = String.format("%s-cuentas_%d.xlsx", dateStr, year);
             headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
             headers.setContentLength(fileBytes.length);
             log.info("Solicitud de exportación Excel (nuevo) CORRECTA para userId={}, year={}", userId, year);

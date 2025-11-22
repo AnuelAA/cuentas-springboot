@@ -167,6 +167,85 @@ public class AssetServiceUseCase implements AssetServicePort {
         }
     }
 
+    @Override
+    @Transactional
+    public AssetValue updateAssetValue(Long userId, Long assetId, Long valuationId, LocalDate valuationDate, Double currentValue, Double acquisitionValue) {
+        // Validar que el asset existe y pertenece al usuario
+        String checkAssetSql = "SELECT asset_id FROM assets WHERE user_id = ? AND asset_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkAssetSql, Long.class, userId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Asset no encontrado o no pertenece al usuario");
+        }
+
+        // Validar que la valoración existe y pertenece al asset
+        String checkValuationSql = "SELECT value_id FROM asset_values WHERE value_id = ? AND asset_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkValuationSql, Long.class, valuationId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Valoración no encontrada o no pertenece al activo");
+        }
+
+        // Validar que currentValue es positivo
+        if (currentValue == null || currentValue <= 0) {
+            throw new IllegalArgumentException("currentValue debe ser mayor a 0");
+        }
+
+        // Validar que acquisitionValue es no negativo si se proporciona
+        if (acquisitionValue != null && acquisitionValue < 0) {
+            throw new IllegalArgumentException("acquisitionValue debe ser mayor o igual a 0");
+        }
+
+        // Validar que valuationDate no es null
+        if (valuationDate == null) {
+            throw new IllegalArgumentException("valuationDate es requerido");
+        }
+
+        // Actualizar la valoración
+        String updateSql = "UPDATE asset_values SET valuation_date = ?, current_value = ? WHERE value_id = ?";
+        int updated = jdbcTemplate.update(updateSql, valuationDate, currentValue, valuationId);
+        
+        if (updated == 0) {
+            throw new RuntimeException("No se pudo actualizar la valoración");
+        }
+
+        AssetValue updatedValue = new AssetValue();
+        updatedValue.setAssetValueId(valuationId);
+        updatedValue.setAssetId(assetId);
+        updatedValue.setValuationDate(valuationDate);
+        updatedValue.setCurrentValue(currentValue);
+        updatedValue.setAcquisitionValue(acquisitionValue);
+        return updatedValue;
+    }
+
+    @Override
+    @Transactional
+    public void deleteAssetValue(Long userId, Long assetId, Long valuationId) {
+        // Validar que el asset existe y pertenece al usuario
+        String checkAssetSql = "SELECT asset_id FROM assets WHERE user_id = ? AND asset_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkAssetSql, Long.class, userId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Asset no encontrado o no pertenece al usuario");
+        }
+
+        // Validar que la valoración existe y pertenece al asset
+        String checkValuationSql = "SELECT value_id FROM asset_values WHERE value_id = ? AND asset_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkValuationSql, Long.class, valuationId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Valoración no encontrada o no pertenece al activo");
+        }
+
+        // Eliminar la valoración
+        String deleteSql = "DELETE FROM asset_values WHERE value_id = ?";
+        int deleted = jdbcTemplate.update(deleteSql, valuationId);
+        
+        if (deleted == 0) {
+            throw new RuntimeException("No se pudo eliminar la valoración");
+        }
+    }
+
     // ===============================
     // NUEVAS FUNCIONES ROI
     // ===============================

@@ -16,6 +16,8 @@ public interface AssetServicePort {
     Asset updateAsset(Long userId, Long assetId, Asset asset);
     void deleteAsset(Long userId, Long assetId);
     AssetValue upsertAssetValue(Long userId, Long assetId, LocalDate valuationDate, Double currentValue, Double acquisitionValue);
+    AssetValue updateAssetValue(Long userId, Long assetId, Long valuationId, LocalDate valuationDate, Double currentValue, Double acquisitionValue);
+    void deleteAssetValue(Long userId, Long assetId, Long valuationId);
     AssetROI calculateAssetROI(Long userId, Long assetId, LocalDate startDate, LocalDate endDate);
     List<MonthlyROI> calculateMonthlyROI(Long userId, Long assetId, Integer year);
     AssetDetail getAssetDetail(Long userId, Long assetId);
