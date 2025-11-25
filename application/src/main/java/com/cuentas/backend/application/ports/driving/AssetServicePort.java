@@ -21,4 +21,6 @@ public interface AssetServicePort {
     AssetROI calculateAssetROI(Long userId, Long assetId, LocalDate startDate, LocalDate endDate);
     List<MonthlyROI> calculateMonthlyROI(Long userId, Long assetId, Integer year);
     AssetDetail getAssetDetail(Long userId, Long assetId);
+    Asset getPrimaryAsset(Long userId);
+    Asset setPrimaryAsset(Long userId, Long assetId);
 }

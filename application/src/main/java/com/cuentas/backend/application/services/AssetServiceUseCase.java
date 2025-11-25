@@ -33,9 +33,16 @@ public class AssetServiceUseCase implements AssetServicePort {
     }
 
     @Override
+    @Transactional
     public Asset createAsset(Long userId, Asset asset) {
-        String sql = "INSERT INTO assets (user_id, asset_type_id, name, description, acquisition_date, acquisition_value) " +
-                "VALUES (?, ?, ?, ?, ?, ?) RETURNING asset_id";
+        // Si se está marcando como principal, primero desmarcar cualquier otro activo principal del usuario
+        if (asset.getIsPrimary() != null && asset.getIsPrimary()) {
+            String unsetPrimarySql = "UPDATE assets SET is_primary = FALSE WHERE user_id = ? AND is_primary = TRUE";
+            jdbcTemplate.update(unsetPrimarySql, userId);
+        }
+
+        String sql = "INSERT INTO assets (user_id, asset_type_id, name, description, acquisition_date, acquisition_value, ownership_percentage, is_primary) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING asset_id";
 
         Long id = jdbcTemplate.queryForObject(sql, Long.class,
                 userId,
@@ -43,7 +50,9 @@ public class AssetServiceUseCase implements AssetServicePort {
                 asset.getName(),
                 asset.getDescription(),
                 asset.getAcquisitionDate(),
-                asset.getAcquisitionValue()
+                asset.getAcquisitionValue(),
+                asset.getOwnershipPercentage() != null ? asset.getOwnershipPercentage() : 100.00,
+                asset.getIsPrimary() != null ? asset.getIsPrimary() : false
         );
 
         asset.setAssetId(id);
@@ -87,8 +96,15 @@ public class AssetServiceUseCase implements AssetServicePort {
     }
 
     @Override
+    @Transactional
     public Asset updateAsset(Long userId, Long assetId, Asset asset) {
-        String sql = "UPDATE assets SET asset_type_id = ?, name = ?, description = ?, acquisition_date = ?, acquisition_value = ?, ownership_percentage = ?, updated_at = NOW() " +
+        // Si se está marcando como principal, primero desmarcar cualquier otro activo principal del usuario
+        if (asset.getIsPrimary() != null && asset.getIsPrimary()) {
+            String unsetPrimarySql = "UPDATE assets SET is_primary = FALSE WHERE user_id = ? AND is_primary = TRUE AND asset_id != ?";
+            jdbcTemplate.update(unsetPrimarySql, userId, assetId);
+        }
+
+        String sql = "UPDATE assets SET asset_type_id = ?, name = ?, description = ?, acquisition_date = ?, acquisition_value = ?, ownership_percentage = ?, is_primary = ?, updated_at = NOW() " +
                 "WHERE user_id = ? AND asset_id = ?";
         jdbcTemplate.update(sql,
                 asset.getAssetTypeId(),
@@ -97,6 +113,7 @@ public class AssetServiceUseCase implements AssetServicePort {
                 asset.getAcquisitionDate(),
                 asset.getAcquisitionValue(),
                 asset.getOwnershipPercentage(),
+                asset.getIsPrimary() != null ? asset.getIsPrimary() : false,
                 userId,
                 assetId
         );
@@ -392,6 +409,47 @@ public class AssetServiceUseCase implements AssetServicePort {
                 .build();
     }
 
+    @Override
+    public Asset getPrimaryAsset(Long userId) {
+        String sql = "SELECT * FROM assets WHERE user_id = ? AND is_primary = TRUE LIMIT 1";
+        try {
+            Asset asset = jdbcTemplate.queryForObject(sql, (rs, rowNum) -> mapRow(rs), userId);
+            
+            // Cargar valores del activo
+            List<AssetValue> values = jdbcTemplate.query(SQL_SELECT_ASSET_VALUES_BY_ASSET,
+                    (rs, rowNum) -> mapAssetValue(rs),
+                    asset.getAssetId());
+            asset.setAssetValues(values);
+            
+            return asset;
+        } catch (DataAccessException e) {
+            return null; // No hay activo principal
+        }
+    }
+
+    @Override
+    @Transactional
+    public Asset setPrimaryAsset(Long userId, Long assetId) {
+        // Verificar que el activo existe y pertenece al usuario
+        String checkSql = "SELECT asset_id FROM assets WHERE user_id = ? AND asset_id = ?";
+        try {
+            jdbcTemplate.queryForObject(checkSql, Long.class, userId, assetId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Activo no encontrado o no pertenece al usuario");
+        }
+
+        // Desmarcar cualquier otro activo principal del usuario
+        String unsetPrimarySql = "UPDATE assets SET is_primary = FALSE WHERE user_id = ? AND is_primary = TRUE";
+        jdbcTemplate.update(unsetPrimarySql, userId);
+
+        // Marcar el activo especificado como principal
+        String setPrimarySql = "UPDATE assets SET is_primary = TRUE, updated_at = NOW() WHERE user_id = ? AND asset_id = ?";
+        jdbcTemplate.update(setPrimarySql, userId, assetId);
+
+        // Retornar el activo actualizado
+        return getAsset(userId, assetId);
+    }
+
     private Transaction mapTransaction(ResultSet rs) throws SQLException {
         Transaction t = new Transaction();
         t.setTransactionId(rs.getLong("transaction_id"));
@@ -421,6 +479,7 @@ public class AssetServiceUseCase implements AssetServicePort {
         asset.setAcquisitionDate(rs.getDate("acquisition_date") != null ? rs.getDate("acquisition_date").toLocalDate() : null);
         asset.setAcquisitionValue(rs.getDouble("acquisition_value"));
         asset.setOwnershipPercentage(rs.getDouble("ownership_percentage"));
+        asset.setIsPrimary(rs.getBoolean("is_primary"));
         return asset;
     }
     private AssetValue mapAssetValue(java.sql.ResultSet rs) throws java.sql.SQLException {

@@ -20,6 +20,7 @@ public class Asset {
     private Double ownershipPercentage;
     private LocalDate acquisitionDate;
     private Double acquisitionValue;
+    private Boolean isPrimary;
     List<AssetValue> assetValues;
 
     public Asset(String name, Long userId,Long assetTypeId, LocalDate acquisitionDate, Double acquisitionValue){

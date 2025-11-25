@@ -173,4 +173,31 @@ public class AssetsControllerAdapter {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/primary")
+    public ResponseEntity<Asset> getPrimaryAsset(@PathVariable Long userId) {
+        logger.info("Obteniendo activo principal para userId={}", userId);
+        Asset primaryAsset = assetService.getPrimaryAsset(userId);
+        if (primaryAsset == null) {
+            logger.info("No hay activo principal para userId={}", userId);
+            return ResponseEntity.notFound().build();
+        }
+        logger.info("Respuesta getPrimaryAsset: {}", primaryAsset);
+        return ResponseEntity.ok(primaryAsset);
+    }
+
+    @PutMapping("/{assetId}/set-primary")
+    public ResponseEntity<Asset> setPrimaryAsset(
+            @PathVariable Long userId,
+            @PathVariable Long assetId) {
+        logger.info("Estableciendo activo principal para userId={}, assetId={}", userId, assetId);
+        try {
+            Asset updated = assetService.setPrimaryAsset(userId, assetId);
+            logger.info("Activo principal establecido: {}", updated);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            logger.error("Error al establecer activo principal: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
+    }
 }
