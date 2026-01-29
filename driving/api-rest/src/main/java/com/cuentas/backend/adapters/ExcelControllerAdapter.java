@@ -1,5 +1,6 @@
 package com.cuentas.backend.adapters;
 
+import com.cuentas.backend.application.ports.driving.DatabaseExportServicePort;
 import com.cuentas.backend.application.ports.driving.ExcelNewServicePort;
 import com.cuentas.backend.application.ports.driving.ExcelServicePort;
 import com.cuentas.backend.domain.File;
@@ -24,10 +25,12 @@ public class ExcelControllerAdapter {
 
     private final ExcelServicePort excelServicePort;
     private final ExcelNewServicePort excelNewServicePort;
+    private final DatabaseExportServicePort databaseExportServicePort;
 
-    public ExcelControllerAdapter(ExcelServicePort excelServicePort, ExcelNewServicePort excelNewServicePort) {
+    public ExcelControllerAdapter(ExcelServicePort excelServicePort, ExcelNewServicePort excelNewServicePort, DatabaseExportServicePort databaseExportServicePort) {
         this.excelServicePort = excelServicePort;
         this.excelNewServicePort = excelNewServicePort;
+        this.databaseExportServicePort = databaseExportServicePort;
     }
 
     @PostMapping("/import")
@@ -139,6 +142,37 @@ public class ExcelControllerAdapter {
         } catch (Exception e) {
             log.error("Error exportando Excel para userId={}, year={}: {}", userId, year, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generando Excel: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/exportDatabase")
+    public ResponseEntity<?> exportDatabase(
+            @PathVariable("userId") long userId
+    ) {
+        log.info("Solicitud de exportación de base de datos para userId={}", userId);
+        try {
+            String databaseContent = databaseExportServicePort.exportDatabaseSchemaAndData(userId);
+            if (databaseContent == null || databaseContent.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+            
+            byte[] fileBytes = databaseContent.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            // Formato: AAMMDD-database-export.txt (ejemplo: 241215-database-export.txt)
+            LocalDate now = LocalDate.now();
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyMMdd");
+            String dateStr = now.format(dateFormatter);
+            String filename = String.format("%s-database-export.txt", dateStr);
+            headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
+            headers.setContentLength(fileBytes.length);
+            
+            log.info("Solicitud de exportación de base de datos CORRECTA para userId={}", userId);
+            return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Error exportando base de datos para userId={}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generando exportación de base de datos: " + e.getMessage());
         }
     }
 }
