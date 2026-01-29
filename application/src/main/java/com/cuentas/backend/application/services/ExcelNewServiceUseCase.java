@@ -99,12 +99,12 @@ public class ExcelNewServiceUseCase implements ExcelNewServicePort {
                     "ORDER BY a.asset_id, av.valuation_date DESC";
 
     private static final String sqlLiabsWithValue =
-            "SELECT l.liability_id, l.name, lt.name AS liability_type_name, l.principal_amount, i.type AS interest_type, i.annual_rate, l.start_date, lv.end_date, lv.outstanding_balance " +
+            "SELECT DISTINCT ON (l.liability_id) l.liability_id, l.name, lt.name AS liability_type_name, l.principal_amount, i.type AS interest_type, i.annual_rate, l.start_date, lv.end_date, lv.outstanding_balance " +
                     "FROM liabilities l " +
                     "LEFT JOIN liability_types lt ON l.liability_type_id = lt.liability_type_id " +
-                    "INNER JOIN liability_values lv ON lv.liability_id = l.liability_id AND lv.valuation_date = ? " +
+                    "INNER JOIN liability_values lv ON lv.liability_id = l.liability_id AND lv.valuation_date <= ? " +
                     "LEFT JOIN interests i ON i.liability_id = l.liability_id AND i.start_date = l.start_date " +
-                    "WHERE l.user_id = ? ORDER BY l.liability_id";
+                    "WHERE l.user_id = ? ORDER BY l.liability_id, lv.valuation_date DESC";
 
     private static final String sqlIncome =
             "SELECT t.category_id, c.name AS category_name, t.asset_id, a.name AS asset_name, " +
